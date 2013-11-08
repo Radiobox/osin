@@ -44,31 +44,31 @@ type AccessRequest struct {
 // AccessData is any struct that impelements getters and setters for
 // access information.
 type AccessData interface {
-	GetClient() Client
+	Client() Client
 	SetClient(Client)
 
-	GetAuthorizeData() AuthorizeData
+	AuthorizeData() AuthorizeData
 	SetAuthorizeData(AuthorizeData)
 
-	GetAccessData() AccessData
+	AccessData() AccessData
 	SetAccessData(AccessData)
 
-	GetAccessToken() string
+	AccessToken() string
 	SetAccessToken(string)
 
-	GetRefreshToken() string
+	RefreshToken() string
 	SetRefreshToken(string)
 
-	GetExpiresIn() int32
+	ExpiresIn() int32
 	SetExpiresIn(int32)
 
-	GetScope() string
+	Scope() string
 	SetScope(string)
 
-	GetRedirectUri() string
+	RedirectUri() string
 	SetRedirectUri(string)
 
-	GetCreatedAt() time.Time
+	CreatedAt() time.Time
 	SetCreatedAt(time.Time)
 
 	ExpiresAt() time.Time

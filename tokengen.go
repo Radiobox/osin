@@ -9,7 +9,7 @@ import (
 type AuthorizeTokenGenDefault struct {
 }
 
-func (a *AuthorizeTokenGenDefault) GenerateAuthorizeToken(data *AuthorizeData) (ret string, err error) {
+func (a *AuthorizeTokenGenDefault) GenerateAuthorizeToken() (ret string, err error) {
 	token := uuid.New()
 	return base64.StdEncoding.EncodeToString([]byte(token)), nil
 }
@@ -18,7 +18,7 @@ func (a *AuthorizeTokenGenDefault) GenerateAuthorizeToken(data *AuthorizeData) (
 type AccessTokenGenDefault struct {
 }
 
-func (a *AccessTokenGenDefault) GenerateAccessToken(data *AccessData, generaterefresh bool) (accesstoken string, refreshtoken string, err error) {
+func (a *AccessTokenGenDefault) GenerateAccessToken(generaterefresh bool) (accesstoken string, refreshtoken string, err error) {
 	accesstoken = uuid.New()
 	accesstoken = base64.StdEncoding.EncodeToString([]byte(accesstoken))
 

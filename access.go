@@ -20,9 +20,9 @@ const (
 type AccessRequest struct {
 	Type          AccessRequestType
 	Code          string
-	Client        *Client
-	AuthorizeData *AuthorizeData
-	AccessData    *AccessData
+	Client        Client
+	AuthorizeData AuthorizeData
+	AccessData    AccessData
 	RedirectUri   string
 	Scope         string
 	Username      string
@@ -41,52 +41,157 @@ type AccessRequest struct {
 	UserData interface{}
 }
 
-// Access data
-type AccessData struct {
+// AccessData is any struct that impelements getters and setters for
+// access information.
+type AccessData interface {
+	GetClient() Client
+	SetClient(Client)
+
+	GetAuthorizeData() AuthorizeData
+	SetAuthorizeData(AuthorizeData)
+
+	GetAccessData() AccessData
+	SetAccessData(AccessData)
+
+	GetAccessToken() string
+	SetAccessToken(string)
+
+	GetRefreshToken() string
+	SetRefreshToken(string)
+
+	GetExpiresIn() int32
+	SetExpiresIn(int32)
+
+	GetScope() string
+	SetScope(string)
+
+	GetRedirectUri() string
+	SetRedirectUri(string)
+
+	GetCreatedAt() time.Time
+	SetCreatedAt(time.Time)
+
+	ExpiresAt() time.Time
+
+	IsExpired() bool
+}
+
+// OsinAccessData is the default AccessData type.
+type OsinAccessData struct {
 	// Client information
-	Client *Client
+	client Client
 
 	// Authorize data, for authorization code
-	AuthorizeData *AuthorizeData
+	authorizeData AuthorizeData
 
 	// Previous access data, for refresh token
-	AccessData *AccessData
+	accessData AccessData
 
 	// Access token
-	AccessToken string
+	accessToken string
 
 	// Refresh Token. Can be blank
-	RefreshToken string
+	refreshToken string
 
 	// Token expiration in seconds
-	ExpiresIn int32
+	expiresIn int32
 
 	// Requested scope
-	Scope string
+	scope string
 
 	// Redirect Uri from request
-	RedirectUri string
+	redirectUri string
 
 	// Date created
-	CreatedAt time.Time
-
-	// Data to be passed to storage. Not used by the library.
-	UserData interface{}
+	createdAt time.Time
 }
 
-// Returns true if access expired
-func (d *AccessData) IsExpired() bool {
-	return d.CreatedAt.Add(time.Duration(d.ExpiresIn) * time.Second).Before(time.Now())
+func (data *OsinAccessData) Client() Client {
+	return data.client
 }
 
-// Returns the expiration date
-func (d *AccessData) ExpireAt() time.Time {
-	return d.CreatedAt.Add(time.Duration(d.ExpiresIn) * time.Second)
+func (data *OsinAccessData) SetClient(client Client) {
+	data.client = client
+}
+
+func (data *OsinAccessData) AuthorizeData() AuthorizeData {
+	return data.authorizeData
+}
+
+func (data *OsinAccessData) SetAuthorizeData(authData AuthorizeData) {
+	data.authorizeData = authData
+}
+
+func (data *OsinAccessData) AccessData() AccessData {
+	return data.accessData
+}
+
+func (data *OsinAccessData) SetAccessData(accessData AccessData) {
+	data.accessData = accessData
+}
+
+func (data *OsinAccessData) AccessToken() string {
+	return data.accessToken
+}
+
+func (data *OsinAccessData) SetAccessToken(token string) {
+	data.accessToken = token
+}
+
+func (data *OsinAccessData) RefreshToken() string {
+	return data.refreshToken
+}
+
+func (data *OsinAccessData) SetRefreshToken(token string) {
+	data.refreshToken = token
+}
+
+func (data *OsinAccessData) ExpiresIn() int32 {
+	return data.expiresIn
+}
+
+func (data *OsinAccessData) SetExpiresIn(seconds int32) {
+	data.expiresIn = seconds
+}
+
+func (data *OsinAccessData) Scope() string {
+	return data.scope
+}
+
+func (data *OsinAccessData) SetScope(scope string) {
+	data.scope = scope
+}
+
+func (data *OsinAccessData) RedirectUri() string {
+	return data.redirectUri
+}
+
+func (data *OsinAccessData) SetRedirectUri(uri string) {
+	data.redirectUri = uri
+}
+
+func (data *OsinAccessData) CreatedAt() time.Time {
+	return data.createdAt
+}
+
+func (data *OsinAccessData) SetCreatedAt(timestamp time.Time) {
+	data.createdAt = timestamp
+}
+
+// ExpiresAt returns this AccessData's expiration timestamp.
+func (data *OsinAccessData) ExpiresAt() time.Time {
+	return data.CreatedAt().Add(time.Duration(data.ExpiresIn()) * time.Second)
+}
+
+// IsExpired returns true if this AccessData is expired, false
+// otherwise.
+func (data *OsinAccessData) IsExpired() bool {
+	return data.ExpiresAt().Before(time.Now())
 }
 
 // Access token generator interface
 type AccessTokenGen interface {
-	GenerateAccessToken(data *AccessData, generaterefresh bool) (accesstoken string, refreshtoken string, err error)
+	GenerateAccessToken(generaterefresh bool) (accesstoken string, refreshtoken string, err error)
 }
 
 // Access token request
@@ -162,11 +267,11 @@ func (s *Server) handleAccessRequestAuthorizationCode(w *Response, r *http.Reque
 		w.SetError(E_UNAUTHORIZED_CLIENT, "")
 		return nil
 	}
-	if ret.Client.Secret != auth.Password {
+	if ret.Client.Secret() != auth.Password {
 		w.SetError(E_UNAUTHORIZED_CLIENT, "")
 		return nil
 	}
-	if ret.Client.RedirectUri == "" {
+	if ret.Client.RedirectUri() == "" {
 		w.SetError(E_UNAUTHORIZED_CLIENT, "")
 		return nil
 	}
@@ -178,11 +283,11 @@ func (s *Server) handleAccessRequestAuthorizationCode(w *Response, r *http.Reque
 		w.InternalError = err
 		return nil
 	}
-	if ret.AuthorizeData.Client == nil {
+	if ret.AuthorizeData.Client() == nil {
 		w.SetError(E_UNAUTHORIZED_CLIENT, "")
 		return nil
 	}
-	if ret.AuthorizeData.Client.RedirectUri == "" {
+	if ret.AuthorizeData.Client().RedirectUri() == "" {
 		w.SetError(E_UNAUTHORIZED_CLIENT, "")
 		return nil
 	}
@@ -192,27 +297,27 @@ func (s *Server) handleAccessRequestAuthorizationCode(w *Response, r *http.Reque
 	}
 
 	// code must be from the client
-	if ret.AuthorizeData.Client.Id != ret.Client.Id {
+	if ret.AuthorizeData.Client().Id() != ret.Client.Id() {
 		w.SetError(E_INVALID_GRANT, "")
 		return nil
 	}
 
 	// check redirect uri
 	if ret.RedirectUri == "" {
-		ret.RedirectUri = ret.Client.RedirectUri
+		ret.RedirectUri = ret.Client.RedirectUri()
 	}
-	if err = ValidateUri(ret.Client.RedirectUri, ret.RedirectUri); err != nil {
+	if err = ValidateUri(ret.Client.RedirectUri(), ret.RedirectUri); err != nil {
 		w.SetError(E_INVALID_REQUEST, "")
 		w.InternalError = err
 		return nil
 	}
-	if ret.AuthorizeData.RedirectUri != ret.RedirectUri {
+	if ret.AuthorizeData.RedirectUri() != ret.RedirectUri {
 		w.SetError(E_INVALID_REQUEST, "")
 		return nil
 	}
 
 	// set rest of data
-	ret.Scope = ret.AuthorizeData.Scope
+	ret.Scope = ret.AuthorizeData.Scope()
 
 	return ret
 }
@@ -257,11 +362,11 @@ func (s *Server) handleAccessRequestRefreshToken(w *Response, r *http.Request) *
 		w.SetError(E_UNAUTHORIZED_CLIENT, "")
 		return nil
 	}
-	if ret.Client.Secret != auth.Password {
+	if ret.Client.Secret() != auth.Password {
 		w.SetError(E_UNAUTHORIZED_CLIENT, "")
 		return nil
 	}
-	if ret.Client.RedirectUri == "" {
+	if ret.Client.RedirectUri() == "" {
 		w.SetError(E_UNAUTHORIZED_CLIENT, "")
 		return nil
 	}
@@ -273,27 +378,25 @@ func (s *Server) handleAccessRequestRefreshToken(w *Response, r *http.Request) *
 		w.InternalError = err
 		return nil
 	}
-	if ret.AccessData.Client == nil {
+	if ret.AccessData.Client() == nil {
 		w.SetError(E_UNAUTHORIZED_CLIENT, "")
 		return nil
 	}
-	if ret.AccessData.Client.RedirectUri == "" {
+	if ret.AccessData.Client().RedirectUri() == "" {
 		w.SetError(E_UNAUTHORIZED_CLIENT, "")
 		return nil
 	}
 
 	// client must be the safe as the previous token
-	if ret.AccessData.Client.Id != ret.Client.Id {
+	if ret.AccessData.Client().Id() != ret.Client.Id() {
 		w.SetError(E_INVALID_CLIENT, "")
 		return nil
-
 	}
 
 	// set rest of data
-	ret.RedirectUri = ret.AccessData.RedirectUri
-	ret.UserData = ret.AccessData.UserData
+	ret.RedirectUri = ret.AccessData.RedirectUri()
 	if ret.Scope == "" {
-		ret.Scope = ret.AccessData.Scope
+		ret.Scope = ret.AccessData.Scope()
 	}
 
 	return ret
@@ -340,17 +443,17 @@ func (s *Server) handleAccessRequestPassword(w *Response, r *http.Request) *Acce
 		w.SetError(E_UNAUTHORIZED_CLIENT, "")
 		return nil
 	}
-	if ret.Client.Secret != auth.Password {
+	if ret.Client.Secret() != auth.Password {
 		w.SetError(E_UNAUTHORIZED_CLIENT, "")
 		return nil
 	}
-	if ret.Client.RedirectUri == "" {
+	if ret.Client.RedirectUri() == "" {
 		w.SetError(E_UNAUTHORIZED_CLIENT, "")
 		return nil
 	}
 
 	// set redirect uri
-	ret.RedirectUri = ret.Client.RedirectUri
+	ret.RedirectUri = ret.Client.RedirectUri()
 
 	// set rest of data
 
@@ -390,45 +493,46 @@ func (s *Server) handleAccessRequestClientCredentials(w *Response, r *http.Reque
 		w.SetError(E_UNAUTHORIZED_CLIENT, "")
 		return nil
 	}
-	if ret.Client.Secret != auth.Password {
+	if ret.Client.Secret() != auth.Password {
 		w.SetError(E_UNAUTHORIZED_CLIENT, "")
 		return nil
 	}
-	if ret.Client.RedirectUri == "" {
+	if ret.Client.RedirectUri() == "" {
 		w.SetError(E_UNAUTHORIZED_CLIENT, "")
 		return nil
 	}
 
 	// set redirect uri
-	ret.RedirectUri = ret.Client.RedirectUri
+	ret.RedirectUri = ret.Client.RedirectUri()
 
 	// set rest of data
 
 	return ret
 }
 
-func (s *Server) FinishAccessRequest(w *Response, r *http.Request, ar *AccessRequest) {
-	// don't process if is already an error
+func (s *Server) FinishAccessRequest(w *Response, r *http.Request, ar *AccessRequest, data ...AccessData) {
 	if w.IsError {
 		return
 	}
 
 	if ar.Authorized {
-		// generate access token
-		ret := &AccessData{
-			Client:        ar.Client,
-			AuthorizeData: ar.AuthorizeData,
-			AccessData:    ar.AccessData,
-			RedirectUri:   r.Form.Get("redirect_uri"),
-			CreatedAt:     time.Now(),
-			ExpiresIn:     ar.Expiration,
-			UserData:      ar.UserData,
+		var target AccessData
+		if len(data) > 0 {
+			target = data[0]
+		} else {
+			target = new(OsinAccessData)
 		}
-
-		var err error
+		target.SetClient(ar.Client)
+		target.SetAuthorizeData(ar.AuthorizeData)
+		target.SetAccessData(ar.AccessData)
+		target.SetRedirectUri(r.Form.Get("redirect_uri"))
+		target.SetCreatedAt(time.Now())
+		target.SetExpiresIn(ar.Expiration)
 
 		// generate access token
-		ret.AccessToken, ret.RefreshToken, err = s.AccessTokenGen.GenerateAccessToken(ret, ar.GenerateRefresh)
+		accessToken, refreshToken, err := s.AccessTokenGen.GenerateAccessToken(ar.GenerateRefresh)
+		target.SetAccessToken(accessToken)
+		target.SetRefreshToken(refreshToken)
 		if err != nil {
 			w.SetError(E_SERVER_ERROR, "")
 			w.InternalError = err
@@ -436,31 +540,31 @@ func (s *Server) FinishAccessRequest(w *Response, r *http.Request, ar *AccessReq
 		}
 
 		// save access token
-		if err = s.Storage.SaveAccess(ret); err != nil {
+		if err = s.Storage.SaveAccess(target); err != nil {
 			w.SetError(E_SERVER_ERROR, "")
 			w.InternalError = err
 			return
 		}
 
 		// remove authorization token
-		if ret.AuthorizeData != nil {
-			s.Storage.RemoveAuthorize(ret.AuthorizeData.Code)
+		if target.AuthorizeData() != nil {
+			s.Storage.RemoveAuthorize(target.AuthorizeData().Code())
 		}
 
 		// remove previous access token
-		if ret.AccessData != nil {
-			if ret.AccessData.RefreshToken != "" {
-				s.Storage.RemoveRefresh(ret.AccessData.RefreshToken)
+		if target.AccessData() != nil {
+			if target.AccessData().RefreshToken() != "" {
+				s.Storage.RemoveRefresh(target.AccessData().RefreshToken())
 			}
-			s.Storage.RemoveAccess(ret.AccessData.AccessToken)
+			s.Storage.RemoveAccess(target.AccessData().AccessToken())
 		}
 
 		// output data
-		w.Output["access_token"] = ret.AccessToken
+		w.Output["access_token"] = target.AccessToken()
 		w.Output["token_type"] = s.Config.TokenType
-		w.Output["expires_in"] = ret.ExpiresIn
-		if ret.RefreshToken != "" {
-			w.Output["refresh_token"] = ret.RefreshToken
+		w.Output["expires_in"] = target.ExpiresIn()
+		if target.RefreshToken() != "" {
+			w.Output["refresh_token"] = target.RefreshToken()
 		}
 		if ar.Scope != "" {
 			w.Output["scope"] = ar.Scope

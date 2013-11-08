@@ -8,7 +8,7 @@ import (
 // Info request information
 type InfoRequest struct {
 	Code       string
-	AccessData *AccessData
+	AccessData AccessData
 }
 
 // Information request.
@@ -35,11 +35,11 @@ func (s *Server) HandleInfoRequest(w *Response, r *http.Request) *InfoRequest {
 		w.InternalError = err
 		return nil
 	}
-	if ret.AccessData.Client == nil {
+	if ret.AccessData.Client() == nil {
 		w.SetError(E_UNAUTHORIZED_CLIENT, "")
 		return nil
 	}
-	if ret.AccessData.Client.RedirectUri == "" {
+	if ret.AccessData.Client().RedirectUri() == "" {
 		w.SetError(E_UNAUTHORIZED_CLIENT, "")
 		return nil
 	}
@@ -58,13 +58,13 @@ func (s *Server) FinishInfoRequest(w *Response, r *http.Request, ir *InfoRequest
 	}
 
 	// output data
-	w.Output["access_token"] = ir.AccessData.AccessToken
+	w.Output["access_token"] = ir.AccessData.AccessToken()
 	w.Output["token_type"] = s.Config.TokenType
-	w.Output["expires_in"] = ir.AccessData.CreatedAt.Add(time.Duration(ir.AccessData.ExpiresIn)*time.Second).Sub(time.Now()) / time.Second
-	if ir.AccessData.RefreshToken != "" {
-		w.Output["refresh_token"] = ir.AccessData.RefreshToken
+	w.Output["expires_in"] = ir.AccessData.ExpiresAt().Sub(time.Now()) / time.Second
+	if ir.AccessData.RefreshToken() != "" {
+		w.Output["refresh_token"] = ir.AccessData.RefreshToken()
 	}
-	if ir.AccessData.Scope != "" {
-		w.Output["scope"] = ir.AccessData.Scope
+	if ir.AccessData.Scope() != "" {
+		w.Output["scope"] = ir.AccessData.Scope()
 	}
 }

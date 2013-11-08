@@ -3,48 +3,48 @@ package osin
 // Client is any struct type that has getters and setters for some
 // required Client parameters.
 type Client interface {
-	Id() string
+	GetId() string
 	SetId(string)
 
-	Secret() string
+	GetSecret() string
 	SetSecret(string)
 
-	RedirectUri() string
+	GetRedirectUri() string
 	SetRedirectUri(string)
 }
 
 // OsinClient is the default client type.
 type OsinClient struct {
 	// Client id
-	id string
+	Id string
 
 	// Client secrent
-	secret string
+	Secret string
 
 	// Base client uri
-	redirectUri string
+	RedirectUri string
 }
 
-func (client *OsinClient) Id() string {
-	return client.id
+func (client *OsinClient) GetId() string {
+	return client.Id
 }
 
 func (client *OsinClient) SetId(id string) {
-	client.id = id
+	client.Id = id
 }
 
-func (client *OsinClient) Secret() string {
-	return client.secret
+func (client *OsinClient) GetSecret() string {
+	return client.Secret
 }
 
 func (client *OsinClient) SetSecret(secret string) {
-	client.secret = secret
+	client.Secret = secret
 }
 
-func (client *OsinClient) RedirectUri() string {
-	return client.redirectUri
+func (client *OsinClient) GetRedirectUri() string {
+	return client.RedirectUri
 }
 
 func (client *OsinClient) SetRedirectUri(uri string) {
-	client.redirectUri = uri
+	client.RedirectUri = uri
 }

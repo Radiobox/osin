@@ -31,25 +31,25 @@ type AuthorizeRequest struct {
 // AuthorizeData is any struct that implements getters and setters for
 // authorization data, as well as expiration methods.
 type AuthorizeData interface {
-	Client() Client
+	GetClient() Client
 	SetClient(Client)
 
-	Code() string
+	GetCode() string
 	SetCode(string)
 
-	ExpiresIn() int32
+	GetExpiresIn() int32
 	SetExpiresIn(int32)
 
-	Scope() string
+	GetScope() string
 	SetScope(string)
 
-	RedirectUri() string
+	GetRedirectUri() string
 	SetRedirectUri(string)
 
-	State() string
+	GetState() string
 	SetState(string)
 
-	CreatedAt() time.Time
+	GetCreatedAt() time.Time
 	SetCreatedAt(time.Time)
 
 	IsExpired() bool
@@ -60,86 +60,86 @@ type AuthorizeData interface {
 // OsinAuthorizeData is the default AuthorizeData type.
 type OsinAuthorizeData struct {
 	// Client information
-	client Client
+	Client Client
 
 	// Authorization code
-	code string
+	Code string
 
 	// Token expiration in seconds
-	expiresIn int32
+	ExpiresIn int32
 
 	// Requested scope
-	scope string
+	Scope string
 
 	// Redirect Uri from request
-	redirectUri string
+	RedirectUri string
 
 	// State data from request
-	state string
+	State string
 
 	// Date created
-	createdAt time.Time
+	CreatedAt time.Time
 }
 
-func (data *OsinAuthorizeData) Client() Client {
-	return data.client
+func (data *OsinAuthorizeData) GetClient() Client {
+	return data.Client
 }
 
 func (data *OsinAuthorizeData) SetClient(client Client) {
-	data.client = client
+	data.Client = client
 }
 
-func (data *OsinAuthorizeData) Code() string {
-	return data.code
+func (data *OsinAuthorizeData) GetCode() string {
+	return data.Code
 }
 
 func (data *OsinAuthorizeData) SetCode(code string) {
-	data.code = code
+	data.Code = code
 }
 
-func (data *OsinAuthorizeData) ExpiresIn() int32 {
-	return data.expiresIn
+func (data *OsinAuthorizeData) GetExpiresIn() int32 {
+	return data.ExpiresIn
 }
 
 func (data *OsinAuthorizeData) SetExpiresIn(seconds int32) {
-	data.expiresIn = seconds
+	data.ExpiresIn = seconds
 }
 
-func (data *OsinAuthorizeData) Scope() string {
-	return data.scope
+func (data *OsinAuthorizeData) GetScope() string {
+	return data.Scope
 }
 
 func (data *OsinAuthorizeData) SetScope(scope string) {
-	data.scope = scope
+	data.Scope = scope
 }
 
-func (data *OsinAuthorizeData) RedirectUri() string {
-	return data.redirectUri
+func (data *OsinAuthorizeData) GetRedirectUri() string {
+	return data.RedirectUri
 }
 
 func (data *OsinAuthorizeData) SetRedirectUri(uri string) {
-	data.redirectUri = uri
+	data.RedirectUri = uri
 }
 
-func (data *OsinAuthorizeData) State() string {
-	return data.state
+func (data *OsinAuthorizeData) GetState() string {
+	return data.State
 }
 
 func (data *OsinAuthorizeData) SetState(state string) {
-	data.state = state
+	data.State = state
 }
 
-func (data *OsinAuthorizeData) CreatedAt() time.Time {
-	return data.createdAt
+func (data *OsinAuthorizeData) GetCreatedAt() time.Time {
+	return data.CreatedAt
 }
 
 func (data *OsinAuthorizeData) SetCreatedAt(timestamp time.Time) {
-	data.createdAt = timestamp
+	data.CreatedAt = timestamp
 }
 
 // ExpiresAt returns this AuthorizeData's expiration timestamp.
 func (data *OsinAuthorizeData) ExpiresAt() time.Time {
-	return data.CreatedAt().Add(time.Duration(data.ExpiresIn()) * time.Second)
+	return data.GetCreatedAt().Add(time.Duration(data.GetExpiresIn()) * time.Second)
 }
 
 // IsExpired returns true if this AuthorizeData is expired, false
@@ -172,7 +172,6 @@ func (s *Server) HandleAuthorizeRequest(w *Response, r *http.Request) *Authorize
 }
 
 func (s *Server) handleAuthorizeRequestCode(w *Response, r *http.Request) *AuthorizeRequest {
-	// create the authorization request
 	ret := &AuthorizeRequest{
 		Type:        CODE,
 		State:       r.Form.Get("state"),
@@ -184,30 +183,17 @@ func (s *Server) handleAuthorizeRequestCode(w *Response, r *http.Request) *Autho
 
 	var err error
 
-	// must have a valid client
-	ret.Client, err = s.Storage.GetClient(r.Form.Get("client_id"))
+	ret.Client, err = s.GetValidClient(r.Form.Get("client_id"), w)
 	if err != nil {
-		w.SetErrorState(E_SERVER_ERROR, "", ret.State)
-		w.InternalError = err
-		return nil
-	}
-	if ret.Client == nil {
-		w.SetErrorState(E_UNAUTHORIZED_CLIENT, "", ret.State)
-		return nil
-	}
-	if ret.Client.RedirectUri() == "" {
-		w.SetErrorState(E_UNAUTHORIZED_CLIENT, "", ret.State)
 		return nil
 	}
 
-	// force redirect response to client redirecturl first
-	w.SetRedirect(ret.Client.RedirectUri())
+	w.SetRedirect(ret.Client.GetRedirectUri())
 
-	// check redirect uri
 	if ret.RedirectUri == "" {
-		ret.RedirectUri = ret.Client.RedirectUri()
+		ret.RedirectUri = ret.Client.GetRedirectUri()
 	}
-	if err = ValidateUri(ret.Client.RedirectUri(), ret.RedirectUri); err != nil {
+	if err = ValidateUri(ret.Client.GetRedirectUri(), ret.RedirectUri); err != nil {
 		w.SetErrorState(E_INVALID_REQUEST, "", ret.State)
 		w.InternalError = err
 		return nil
@@ -217,7 +203,6 @@ func (s *Server) handleAuthorizeRequestCode(w *Response, r *http.Request) *Autho
 }
 
 func (s *Server) handleAuthorizeRequestToken(w *Response, r *http.Request) *AuthorizeRequest {
-	// create the authorization request
 	ret := &AuthorizeRequest{
 		Type:        TOKEN,
 		State:       r.Form.Get("state"),
@@ -230,30 +215,17 @@ func (s *Server) handleAuthorizeRequestToken(w *Response, r *http.Request) *Auth
 
 	var err error
 
-	// must have a valid client
-	ret.Client, err = s.Storage.GetClient(r.Form.Get("client_id"))
+	ret.Client, err = s.GetValidClient(r.Form.Get("client_id"), w)
 	if err != nil {
-		w.SetErrorState(E_SERVER_ERROR, "", ret.State)
-		w.InternalError = err
-		return nil
-	}
-	if ret.Client == nil {
-		w.SetErrorState(E_UNAUTHORIZED_CLIENT, "", ret.State)
-		return nil
-	}
-	if ret.Client.RedirectUri() == "" {
-		w.SetErrorState(E_UNAUTHORIZED_CLIENT, "", ret.State)
 		return nil
 	}
 
-	// force redirect response to client redirecturl first
-	w.SetRedirect(ret.Client.RedirectUri())
+	w.SetRedirect(ret.Client.GetRedirectUri())
 
-	// check redirect uri
 	if ret.RedirectUri == "" {
-		ret.RedirectUri = ret.Client.RedirectUri()
+		ret.RedirectUri = ret.Client.GetRedirectUri()
 	}
-	if err = ValidateUri(ret.Client.RedirectUri(), ret.RedirectUri); err != nil {
+	if err = ValidateUri(ret.Client.GetRedirectUri(), ret.RedirectUri); err != nil {
 		w.SetErrorState(E_INVALID_REQUEST, "", ret.State)
 		w.InternalError = err
 		return nil
@@ -313,8 +285,8 @@ func (s *Server) FinishAuthorizeRequest(w *Response, r *http.Request, ar *Author
 				return
 			}
 
-			w.Output["code"] = target.Code
-			w.Output["state"] = target.State
+			w.Output["code"] = target.GetCode()
+			w.Output["state"] = target.GetState()
 		}
 	} else {
 		// redirect with error

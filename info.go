@@ -28,23 +28,8 @@ func (s *Server) HandleInfoRequest(w *Response, r *http.Request) *InfoRequest {
 
 	var err error
 
-	// load access data
-	ret.AccessData, err = s.Storage.LoadAccess(ret.Code)
+	ret.AccessData, err = s.GetValidAccessData(ret.Code, w)
 	if err != nil {
-		w.SetError(E_INVALID_REQUEST, "")
-		w.InternalError = err
-		return nil
-	}
-	if ret.AccessData.Client() == nil {
-		w.SetError(E_UNAUTHORIZED_CLIENT, "")
-		return nil
-	}
-	if ret.AccessData.Client().RedirectUri() == "" {
-		w.SetError(E_UNAUTHORIZED_CLIENT, "")
-		return nil
-	}
-	if ret.AccessData.IsExpired() {
-		w.SetError(E_INVALID_GRANT, "")
 		return nil
 	}
 
@@ -58,13 +43,13 @@ func (s *Server) FinishInfoRequest(w *Response, r *http.Request, ir *InfoRequest
 	}
 
 	// output data
-	w.Output["access_token"] = ir.AccessData.AccessToken()
+	w.Output["access_token"] = ir.AccessData.GetAccessToken()
 	w.Output["token_type"] = s.Config.TokenType
 	w.Output["expires_in"] = ir.AccessData.ExpiresAt().Sub(time.Now()) / time.Second
-	if ir.AccessData.RefreshToken() != "" {
-		w.Output["refresh_token"] = ir.AccessData.RefreshToken()
+	if ir.AccessData.GetRefreshToken() != "" {
+		w.Output["refresh_token"] = ir.AccessData.GetRefreshToken()
 	}
-	if ir.AccessData.Scope() != "" {
-		w.Output["scope"] = ir.AccessData.Scope()
+	if ir.AccessData.GetScope() != "" {
+		w.Output["scope"] = ir.AccessData.GetScope()
 	}
 }

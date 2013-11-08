@@ -67,7 +67,7 @@ func (r *Response) SetErrorState(id string, description string, state string) {
 func (r *Response) SetErrorUri(id string, description string, uri string, state string) {
 	// get default error message
 	if description == "" {
-		description = deferror.Get(id)
+		description = deferror.Get(id).Error()
 	}
 
 	// set error parameters

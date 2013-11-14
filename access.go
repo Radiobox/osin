@@ -374,7 +374,7 @@ func (s *Server) handleAccessRequestClientCredentials(w *Response, r *http.Reque
 	return ret
 }
 
-func (s *Server) FinishAccessRequest(w *Response, r *http.Request, ar *AccessRequest, targets ...AccessData) {
+func (s *Server) FinishAccessRequest(w *Response, r *http.Request, ar *AccessRequest, targets ...interface{}) {
 	if w.IsError {
 		return
 	}

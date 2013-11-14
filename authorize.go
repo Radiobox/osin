@@ -234,7 +234,7 @@ func (s *Server) handleAuthorizeRequestToken(w *Response, r *http.Request) *Auth
 	return ret
 }
 
-func (s *Server) FinishAuthorizeRequest(w *Response, r *http.Request, ar *AuthorizeRequest, data ...AuthorizeData) {
+func (s *Server) FinishAuthorizeRequest(w *Response, r *http.Request, ar *AuthorizeRequest, targets ...interface{}) {
 	if w.IsError {
 		return
 	}
@@ -256,11 +256,11 @@ func (s *Server) FinishAuthorizeRequest(w *Response, r *http.Request, ar *Author
 				Expiration:      ar.Expiration,
 			}
 
-			s.FinishAccessRequest(w, r, ret)
+			s.FinishAccessRequest(w, r, ret, targets)
 		} else {
 			var target AuthorizeData
-			if len(data) > 0 {
-				target = data[0]
+			if len(targets) > 0 {
+				target = targets[0].(AuthorizeData)
 			} else {
 				target = new(OsinAuthorizeData)
 			}

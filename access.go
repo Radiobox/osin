@@ -374,15 +374,15 @@ func (s *Server) handleAccessRequestClientCredentials(w *Response, r *http.Reque
 	return ret
 }
 
-func (s *Server) FinishAccessRequest(w *Response, r *http.Request, ar *AccessRequest, data ...AccessData) {
+func (s *Server) FinishAccessRequest(w *Response, r *http.Request, ar *AccessRequest, targets ...AccessData) {
 	if w.IsError {
 		return
 	}
 
 	if ar.Authorized {
 		var target AccessData
-		if len(data) > 0 {
-			target = data[0]
+		if len(targets) > 0 {
+			target = targets[0].(AccessData)
 		} else {
 			target = new(OsinAccessData)
 		}

@@ -256,7 +256,7 @@ func (s *Server) FinishAuthorizeRequest(w *Response, r *http.Request, ar *Author
 				Expiration:      ar.Expiration,
 			}
 
-			s.FinishAccessRequest(w, r, ret, targets)
+			s.FinishAccessRequest(w, r, ret, targets...)
 		} else {
 			var target AuthorizeData
 			if len(targets) > 0 {

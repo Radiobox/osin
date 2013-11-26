@@ -321,11 +321,12 @@ func (s *Server) handleAccessRequestRefreshToken(w *Response, r *http.Request) *
 	return ret
 }
 
+// handleAccessRequestPassword handles access requests that POST a
+// username and password directly to the token end point.  This is
+// usually a call from a client-side application or script, so we
+// don't require a client secret, because it probably can't be secured
+// properly, anyway.
 func (s *Server) handleAccessRequestPassword(w *Response, r *http.Request) *AccessRequest {
-	auth, err := GetValidAuth(r, s.Config.AllowClientSecretInParams, w)
-	if err != nil {
-		return nil
-	}
 
 	ret := &AccessRequest{
 		Type:            PASSWORD,
@@ -341,7 +342,9 @@ func (s *Server) handleAccessRequestPassword(w *Response, r *http.Request) *Acce
 		return nil
 	}
 
-	ret.Client, err = s.GetValidClientWithSecret(auth.Username, auth.Password, w)
+	var err error
+
+	ret.Client, err = s.GetValidClient(r.Form.Get("client_id"), w)
 	if err != nil {
 		return nil
 	}

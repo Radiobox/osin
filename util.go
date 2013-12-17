@@ -5,15 +5,17 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"github.com/stretchr/objx"
 )
 
-// Parse basic authentication header
+// BasicAuth defines the values required for basic authentication.
 type BasicAuth struct {
 	Username string
 	Password string
 }
 
-// Return authorization header data
+// CheckBasicAuth reads Basic authorization from the Authorization
+// header.
 func CheckBasicAuth(r *http.Request) (*BasicAuth, error) {
 	if r.Header.Get("Authorization") == "" {
 		return nil, nil
@@ -37,9 +39,12 @@ func CheckBasicAuth(r *http.Request) (*BasicAuth, error) {
 }
 
 // Check client authentication in params if allowed, and on authorization header
-func CheckClientAuth(r *http.Request, useparams bool) (*BasicAuth, error) {
+func CheckClientAuth(r *http.Request, params objx.Map, useparams bool) (*BasicAuth, error) {
 	if useparams {
-		ret := &BasicAuth{Username: r.Form.Get("client_id"), Password: r.Form.Get("client_secret")}
+		ret := &BasicAuth{
+			Username: params.Get("client_id").Str(),
+			Password: params.Get("client_secret").Str(),
+		}
 		if ret.Username != "" && ret.Password != "" {
 			return ret, nil
 		}
@@ -52,8 +57,8 @@ func CheckClientAuth(r *http.Request, useparams bool) (*BasicAuth, error) {
 // ensures that the authorization is valid.  It writes any error
 // messages to the passed in *Response value and returns the error (so
 // that you can stop processing if you don't need to go any further).
-func GetValidAuth(request *http.Request, allowSecretInParams bool, writer *Response) (*BasicAuth, error) {
-	auth, err := CheckClientAuth(request, allowSecretInParams)
+func GetValidAuth(request *http.Request, params objx.Map, allowSecretInParams bool, writer *Response) (*BasicAuth, error) {
+	auth, err := CheckClientAuth(request, params, allowSecretInParams)
 	if err != nil || auth == nil {
 		writer.SetError(E_INVALID_REQUEST, "")
 		if err == nil {

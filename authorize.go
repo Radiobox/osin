@@ -1,8 +1,8 @@
 package osin
 
 import (
-	"net/http"
 	"time"
+	"github.com/stretchr/objx"
 )
 
 type AuthorizeRequestType string
@@ -153,17 +153,19 @@ type AuthorizeTokenGen interface {
 	GenerateAuthorizeToken() (string, error)
 }
 
-// Authorize request
-func (s *Server) HandleAuthorizeRequest(w *Response, r *http.Request) *AuthorizeRequest {
-	r.ParseForm()
+// HandleAuthorizeRequest takes a *Response and an
+// objx.Map of parameters, and returns a *AuthorizeRequest
+// representing the request present in the *http.Request and
+// parameters.
+func (s *Server) HandleAuthorizeRequest(w *Response, params objx.Map) *AuthorizeRequest {
 
-	requestType := AuthorizeRequestType(r.Form.Get("response_type"))
+	requestType := AuthorizeRequestType(params.Get("response_type").Str())
 	if s.Config.AllowedAuthorizeTypes.Exists(requestType) {
 		switch requestType {
 		case CODE:
-			return s.handleAuthorizeRequestCode(w, r)
+			return s.handleAuthorizeRequestCode(w, params)
 		case TOKEN:
-			return s.handleAuthorizeRequestToken(w, r)
+			return s.handleAuthorizeRequestToken(w, params)
 		}
 	}
 
@@ -171,19 +173,19 @@ func (s *Server) HandleAuthorizeRequest(w *Response, r *http.Request) *Authorize
 	return nil
 }
 
-func (s *Server) handleAuthorizeRequestCode(w *Response, r *http.Request) *AuthorizeRequest {
+func (s *Server) handleAuthorizeRequestCode(w *Response, params objx.Map) *AuthorizeRequest {
 	ret := &AuthorizeRequest{
 		Type:        CODE,
-		State:       r.Form.Get("state"),
-		Scope:       r.Form.Get("scope"),
-		RedirectUri: r.Form.Get("redirect_uri"),
+		State:       params.Get("state").Str(),
+		Scope:       params.Get("scope").Str(),
+		RedirectUri: params.Get("redirect_uri").Str(),
 		Authorized:  false,
 		Expiration:  s.Config.AuthorizationExpiration,
 	}
 
 	var err error
 
-	ret.Client, err = s.GetValidClient(r.Form.Get("client_id"), w)
+	ret.Client, err = s.GetValidClient(params.Get("client_id").Str(), w)
 	if err != nil {
 		return nil
 	}
@@ -202,12 +204,12 @@ func (s *Server) handleAuthorizeRequestCode(w *Response, r *http.Request) *Autho
 	return ret
 }
 
-func (s *Server) handleAuthorizeRequestToken(w *Response, r *http.Request) *AuthorizeRequest {
+func (s *Server) handleAuthorizeRequestToken(w *Response, params objx.Map) *AuthorizeRequest {
 	ret := &AuthorizeRequest{
 		Type:        TOKEN,
-		State:       r.Form.Get("state"),
-		Scope:       r.Form.Get("scope"),
-		RedirectUri: r.Form.Get("redirect_uri"),
+		State:       params.Get("state").Str(),
+		Scope:       params.Get("scope").Str(),
+		RedirectUri: params.Get("redirect_uri").Str(),
 		Authorized:  false,
 		// this type will generate a token directly, use access token expiration instead.
 		Expiration: s.Config.AccessExpiration,
@@ -215,7 +217,7 @@ func (s *Server) handleAuthorizeRequestToken(w *Response, r *http.Request) *Auth
 
 	var err error
 
-	ret.Client, err = s.GetValidClient(r.Form.Get("client_id"), w)
+	ret.Client, err = s.GetValidClient(params.Get("client_id").Str(), w)
 	if err != nil {
 		return nil
 	}
@@ -234,7 +236,7 @@ func (s *Server) handleAuthorizeRequestToken(w *Response, r *http.Request) *Auth
 	return ret
 }
 
-func (s *Server) FinishAuthorizeRequest(w *Response, r *http.Request, ar *AuthorizeRequest, targets ...interface{}) {
+func (s *Server) FinishAuthorizeRequest(w *Response, params objx.Map, ar *AuthorizeRequest, targets ...interface{}) {
 	if w.IsError {
 		return
 	}
@@ -256,7 +258,7 @@ func (s *Server) FinishAuthorizeRequest(w *Response, r *http.Request, ar *Author
 				Expiration:      ar.Expiration,
 			}
 
-			s.FinishAccessRequest(w, r, ret, targets...)
+			s.FinishAccessRequest(w, params, ret, targets...)
 		} else {
 			var target AuthorizeData
 			if len(targets) > 0 {

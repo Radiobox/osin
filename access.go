@@ -3,6 +3,7 @@ package osin
 import (
 	"net/http"
 	"time"
+	"github.com/stretchr/objx"
 )
 
 type AccessRequestType string
@@ -193,32 +194,33 @@ type AccessTokenGen interface {
 	GenerateAccessToken(generaterefresh bool) (accesstoken string, refreshtoken string, err error)
 }
 
-// Access token request
-func (s *Server) HandleAccessRequest(w *Response, r *http.Request) *AccessRequest {
-	// Only allow GET or POST
-	if r.Method == "GET" {
+// HandleAccessRequest takes a *Response, a *http.Request, and a map
+// of input parameters and returns a *AccessRequest representing the
+// request for an access token.  If there are errors in the request,
+// they will be written to the *Response and a nil value will be
+// returned.
+func (s *Server) HandleAccessRequest(w *Response, request *http.Request, params objx.Map) *AccessRequest {
+	if request.Method == "GET" {
 		if !s.Config.AllowGetAccessRequest {
 			w.SetError(E_INVALID_REQUEST, "")
 			return nil
 		}
-	} else if r.Method != "POST" {
+	} else if request.Method != "POST" {
 		w.SetError(E_INVALID_REQUEST, "")
 		return nil
 	}
 
-	r.ParseForm()
-
-	grantType := AccessRequestType(r.Form.Get("grant_type"))
+	grantType := AccessRequestType(params.Get("grant_type").Str())
 	if s.Config.AllowedAccessTypes.Exists(grantType) {
 		switch grantType {
 		case AUTHORIZATION_CODE:
-			return s.handleAccessRequestAuthorizationCode(w, r)
+			return s.handleAccessRequestAuthorizationCode(w, request, params)
 		case REFRESH_TOKEN:
-			return s.handleAccessRequestRefreshToken(w, r)
+			return s.handleAccessRequestRefreshToken(w, request, params)
 		case PASSWORD:
-			return s.handleAccessRequestPassword(w, r)
+			return s.handleAccessRequestPassword(w, request, params)
 		case CLIENT_CREDENTIALS:
-			return s.handleAccessRequestClientCredentials(w, r)
+			return s.handleAccessRequestClientCredentials(w, request, params)
 		}
 	}
 
@@ -226,16 +228,16 @@ func (s *Server) HandleAccessRequest(w *Response, r *http.Request) *AccessReques
 	return nil
 }
 
-func (s *Server) handleAccessRequestAuthorizationCode(w *Response, r *http.Request) *AccessRequest {
-	auth, err := GetValidAuth(r, s.Config.AllowClientSecretInParams, w)
+func (s *Server) handleAccessRequestAuthorizationCode(w *Response, request *http.Request, params objx.Map) *AccessRequest {
+	auth, err := GetValidAuth(request, params, s.Config.AllowClientSecretInParams, w)
 	if err != nil {
 		return nil
 	}
 
 	ret := &AccessRequest{
 		Type:            AUTHORIZATION_CODE,
-		Code:            r.Form.Get("code"),
-		RedirectUri:     r.Form.Get("redirect_uri"),
+		Code:            params.Get("code").Str(),
+		RedirectUri:     params.Get("redirect_uri").Str(),
 		GenerateRefresh: true,
 		Expiration:      s.Config.AccessExpiration,
 	}
@@ -279,16 +281,16 @@ func (s *Server) handleAccessRequestAuthorizationCode(w *Response, r *http.Reque
 	return ret
 }
 
-func (s *Server) handleAccessRequestRefreshToken(w *Response, r *http.Request) *AccessRequest {
-	auth, err := GetValidAuth(r, s.Config.AllowClientSecretInParams, w)
+func (s *Server) handleAccessRequestRefreshToken(w *Response, request *http.Request, params objx.Map) *AccessRequest {
+	auth, err := GetValidAuth(request, params, s.Config.AllowClientSecretInParams, w)
 	if err != nil {
 		return nil
 	}
 
 	ret := &AccessRequest{
 		Type:            REFRESH_TOKEN,
-		Code:            r.Form.Get("refresh_token"),
-		Scope:           r.Form.Get("scope"),
+		Code:            params.Get("refresh_token").Str(),
+		Scope:           params.Get("scope").Str(),
 		GenerateRefresh: true,
 		Expiration:      s.Config.AccessExpiration,
 	}
@@ -326,13 +328,13 @@ func (s *Server) handleAccessRequestRefreshToken(w *Response, r *http.Request) *
 // usually a call from a client-side application or script, so we
 // don't require a client secret, because it probably can't be secured
 // properly, anyway.
-func (s *Server) handleAccessRequestPassword(w *Response, r *http.Request) *AccessRequest {
+func (s *Server) handleAccessRequestPassword(w *Response, request *http.Request, params objx.Map) *AccessRequest {
 
 	ret := &AccessRequest{
 		Type:            PASSWORD,
-		Username:        r.Form.Get("username"),
-		Password:        r.Form.Get("password"),
-		Scope:           r.Form.Get("scope"),
+		Username:        params.Get("username").Str(),
+		Password:        params.Get("password").Str(),
+		Scope:           params.Get("scope").Str(),
 		GenerateRefresh: true,
 		Expiration:      s.Config.AccessExpiration,
 	}
@@ -344,7 +346,7 @@ func (s *Server) handleAccessRequestPassword(w *Response, r *http.Request) *Acce
 
 	var err error
 
-	ret.Client, err = s.GetValidClient(r.Form.Get("client_id"), w)
+	ret.Client, err = s.GetValidClient(params.Get("client_id").Str(), w)
 	if err != nil {
 		return nil
 	}
@@ -354,15 +356,15 @@ func (s *Server) handleAccessRequestPassword(w *Response, r *http.Request) *Acce
 	return ret
 }
 
-func (s *Server) handleAccessRequestClientCredentials(w *Response, r *http.Request) *AccessRequest {
-	auth, err := GetValidAuth(r, s.Config.AllowClientSecretInParams, w)
+func (s *Server) handleAccessRequestClientCredentials(w *Response, request *http.Request, params objx.Map) *AccessRequest {
+	auth, err := GetValidAuth(request, params, s.Config.AllowClientSecretInParams, w)
 	if err != nil {
 		return nil
 	}
 
 	ret := &AccessRequest{
 		Type:            CLIENT_CREDENTIALS,
-		Scope:           r.Form.Get("scope"),
+		Scope:           params.Get("scope").Str(),
 		GenerateRefresh: true,
 		Expiration:      s.Config.AccessExpiration,
 	}
@@ -377,7 +379,7 @@ func (s *Server) handleAccessRequestClientCredentials(w *Response, r *http.Reque
 	return ret
 }
 
-func (s *Server) FinishAccessRequest(w *Response, r *http.Request, ar *AccessRequest, targets ...interface{}) {
+func (s *Server) FinishAccessRequest(w *Response, params objx.Map, ar *AccessRequest, targets ...interface{}) {
 	if w.IsError {
 		return
 	}
@@ -392,7 +394,7 @@ func (s *Server) FinishAccessRequest(w *Response, r *http.Request, ar *AccessReq
 		target.SetClient(ar.Client)
 		target.SetAuthorizeData(ar.AuthorizeData)
 		target.SetAccessData(ar.AccessData)
-		target.SetRedirectUri(r.Form.Get("redirect_uri"))
+		target.SetRedirectUri(params.Get("redirect_uri").Str())
 		target.SetCreatedAt(time.Now())
 		target.SetExpiresIn(ar.Expiration)
 

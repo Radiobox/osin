@@ -144,7 +144,7 @@ func (s *Server) GetValidAccessData(token string, writer *Response) (AccessData,
 		writer.InternalError = err
 		return nil, err
 	}
-	if access.GetClient() == nil || access.GetClient().GetRedirectUri() == "" {
+	if access.GetClient() == nil {
 		writer.SetError(E_UNAUTHORIZED_CLIENT, "")
 		return nil, err
 	}
@@ -169,7 +169,7 @@ func (s *Server) GetValidRefresh(token string, writer *Response) (AccessData, er
 		writer.InternalError = err
 		return nil, err
 	}
-	if access.GetClient() == nil || access.GetClient().GetRedirectUri() == "" {
+	if access.GetClient() == nil {
 		writer.SetError(E_UNAUTHORIZED_CLIENT, "")
 		return nil, deferror.Get(E_UNAUTHORIZED_CLIENT)
 	}

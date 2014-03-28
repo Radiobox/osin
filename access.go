@@ -282,11 +282,6 @@ func (s *Server) handleAccessRequestAuthorizationCode(w *Response, request *http
 }
 
 func (s *Server) handleAccessRequestRefreshToken(w *Response, request *http.Request, params objx.Map) *AccessRequest {
-	auth, err := GetValidAuth(request, params, s.Config.AllowClientSecretInParams, w)
-	if err != nil {
-		return nil
-	}
-
 	ret := &AccessRequest{
 		Type:            REFRESH_TOKEN,
 		Code:            params.Get("refresh_token").Str(),
@@ -300,7 +295,8 @@ func (s *Server) handleAccessRequestRefreshToken(w *Response, request *http.Requ
 		return nil
 	}
 
-	ret.Client, err = s.GetValidClientWithSecret(auth.Username, auth.Password, w)
+	var err error
+	ret.Client, err = s.GetValidClient(params.Get("client_id").Str(), w)
 	if err != nil {
 		return nil
 	}

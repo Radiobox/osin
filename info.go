@@ -1,9 +1,9 @@
 package osin
 
 import (
+	"github.com/stretchr/objx"
 	"net/http"
 	"time"
-	"github.com/stretchr/objx"
 )
 
 type InfoRequest struct {
@@ -35,8 +35,8 @@ func (s *Server) HandleInfoRequest(r *http.Request) (*InfoRequest, *HttpError) {
 func (s *Server) FinishInfoRequest(r *http.Request, ir *InfoRequest) objx.Map {
 	response := objx.Map{
 		"access_token": ir.AccessData.GetAccessToken(),
-		"token_type": s.Config.TokenType,
-		"expires_in": ir.AccessData.ExpiresAt().Sub(time.Now()) / time.Second,
+		"token_type":   s.Config.TokenType,
+		"expires_in":   ir.AccessData.ExpiresAt().Sub(time.Now()) / time.Second,
 	}
 	if ir.AccessData.GetRefreshToken() != "" {
 		response.Set("refresh_token", ir.AccessData.GetRefreshToken())

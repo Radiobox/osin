@@ -1,11 +1,11 @@
 package osin
 
 import (
-	"time"
-	"github.com/stretchr/objx"
-	"net/url"
-	"net/http"
 	"fmt"
+	"github.com/stretchr/objx"
+	"net/http"
+	"net/url"
+	"time"
 )
 
 // HandleAuthorizeRequest takes a *Response and an
@@ -87,7 +87,7 @@ func (s *Server) FinishAuthorizeRequest(params objx.Map, ar *AuthorizeRequest, t
 		redirectUrl, err := url.Parse(ar.RedirectUri)
 		if err != nil {
 			return "", &HttpError{
-				Status: http.StatusInternalServerError,
+				Status:  http.StatusInternalServerError,
 				Message: "Could not parse previously parsed url: " + err.Error(),
 			}
 		}
@@ -95,7 +95,7 @@ func (s *Server) FinishAuthorizeRequest(params objx.Map, ar *AuthorizeRequest, t
 			access, ok := target.(AccessData)
 			if !ok {
 				return "", &HttpError{
-					Status: http.StatusInternalServerError,
+					Status:  http.StatusInternalServerError,
 					Message: "Expected target to be AccessData.",
 				}
 			}
@@ -125,7 +125,7 @@ func (s *Server) FinishAuthorizeRequest(params objx.Map, ar *AuthorizeRequest, t
 			authData, ok := target.(AuthorizeData)
 			if !ok {
 				return "", &HttpError{
-					Status: http.StatusInternalServerError,
+					Status:  http.StatusInternalServerError,
 					Message: "Expected target to be AuthorizeData",
 				}
 			}
@@ -147,7 +147,7 @@ func (s *Server) FinishAuthorizeRequest(params objx.Map, ar *AuthorizeRequest, t
 					return "", httpErr
 				}
 				return "", &HttpError{
-					Status: http.StatusInternalServerError,
+					Status:  http.StatusInternalServerError,
 					Message: saveErr.Error(),
 				}
 			}

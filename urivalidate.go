@@ -2,15 +2,15 @@ package osin
 
 import (
 	"fmt"
+	"net/http"
 	"net/url"
 	"strings"
-	"net/http"
 )
 
 func ValidateUri(baseUri string, redirectUri string) *HttpError {
 	if baseUri == "" || redirectUri == "" {
 		return &HttpError{
-			Status: http.StatusBadRequest,
+			Status:  http.StatusBadRequest,
 			Message: "urls cannot be blank.",
 		}
 	}
@@ -18,7 +18,7 @@ func ValidateUri(baseUri string, redirectUri string) *HttpError {
 	base, err := url.Parse(baseUri)
 	if err != nil {
 		return &HttpError{
-			Status: http.StatusBadRequest,
+			Status:  http.StatusBadRequest,
 			Message: "Url parse error: " + err.Error(),
 		}
 	}
@@ -26,14 +26,14 @@ func ValidateUri(baseUri string, redirectUri string) *HttpError {
 	redirect, err := url.Parse(redirectUri)
 	if err != nil {
 		return &HttpError{
-			Status: http.StatusBadRequest,
+			Status:  http.StatusBadRequest,
 			Message: "Redirect url parse error: " + err.Error(),
 		}
 	}
 
 	if base.Fragment != "" || redirect.Fragment != "" {
 		return &HttpError{
-			Status: http.StatusBadRequest,
+			Status:  http.StatusBadRequest,
 			Message: "Url must not include fragment.",
 		}
 	}
@@ -42,7 +42,7 @@ func ValidateUri(baseUri string, redirectUri string) *HttpError {
 		len(redirect.Path) >= len(base.Path) && strings.HasPrefix(redirect.Path, base.Path)
 	if !validRedirect {
 		return &HttpError{
-			Status: http.StatusUnauthorized,
+			Status:  http.StatusUnauthorized,
 			Message: fmt.Sprintf("Urls don't validate: %s / %s", baseUri, redirectUri),
 		}
 	}

@@ -1,9 +1,9 @@
 package osin
 
 import (
+	"github.com/stretchr/objx"
 	"net/http"
 	"time"
-	"github.com/stretchr/objx"
 )
 
 // HandleAccessRequest takes a *http.Request and a map of input
@@ -204,8 +204,8 @@ func (s *Server) FinishAccessRequest(params objx.Map, ar *AccessRequest, target 
 
 		response := objx.Map{
 			"access_token": target.GetAccessToken(),
-			"token_type": s.Config.TokenType,
-			"expires_in": target.GetExpiresIn(),
+			"token_type":   s.Config.TokenType,
+			"expires_in":   target.GetExpiresIn(),
 		}
 		if target.GetRefreshToken() != "" {
 			response.Set("refresh_token", target.GetRefreshToken())

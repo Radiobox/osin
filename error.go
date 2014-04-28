@@ -28,7 +28,7 @@ var (
 // field should be used as the response code of any http responses
 // returning the error to a client.
 type HttpError struct {
-	Status int
+	Status  int
 	Message string
 }
 
@@ -50,11 +50,11 @@ func NewDefaultErrors() *DefaultErrors {
 				"parameter more than once, or is otherwise malformed.",
 		},
 		E_UNAUTHORIZED_CLIENT: &HttpError{
-			Status: http.StatusUnauthorized,
+			Status:  http.StatusUnauthorized,
 			Message: "The client is not authorized to request a token using this method.",
 		},
 		E_ACCESS_DENIED: &HttpError{
-			Status: http.StatusUnauthorized,
+			Status:  http.StatusUnauthorized,
 			Message: "The resource owner or authorization server denied the request.",
 		},
 		E_UNSUPPORTED_RESPONSE_TYPE: &HttpError{
@@ -63,7 +63,7 @@ func NewDefaultErrors() *DefaultErrors {
 				"support obtaining a token using this method.",
 		},
 		E_INVALID_SCOPE: &HttpError{
-			Status: http.StatusBadRequest,
+			Status:  http.StatusBadRequest,
 			Message: "The requested scope is invalid, unknown, or malformed.",
 		},
 		E_SERVER_ERROR: &HttpError{
@@ -101,7 +101,7 @@ func (e *DefaultErrors) Get(id string) *HttpError {
 		return m
 	}
 	return &HttpError{
-		Status: http.StatusInternalServerError,
+		Status:  http.StatusInternalServerError,
 		Message: "Unrecognized error type: " + id,
 	}
 }

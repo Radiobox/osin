@@ -2,9 +2,9 @@ package osin
 
 import (
 	"encoding/base64"
+	"github.com/stretchr/objx"
 	"net/http"
 	"strings"
-	"github.com/stretchr/objx"
 )
 
 // BasicAuth defines the values required for basic authentication.
@@ -23,7 +23,7 @@ func CheckBasicAuth(r *http.Request) (*BasicAuth, *HttpError) {
 	s := strings.SplitN(r.Header.Get("Authorization"), " ", 2)
 	if len(s) != 2 || s[0] != "Basic" {
 		return nil, &HttpError{
-			Status: http.StatusBadRequest,
+			Status:  http.StatusBadRequest,
 			Message: "Invalid authorization header",
 		}
 	}
@@ -31,14 +31,14 @@ func CheckBasicAuth(r *http.Request) (*BasicAuth, *HttpError) {
 	b, err := base64.StdEncoding.DecodeString(s[1])
 	if err != nil {
 		return nil, &HttpError{
-			Status: http.StatusBadRequest,
+			Status:  http.StatusBadRequest,
 			Message: "Could not decode basic auth: " + err.Error(),
 		}
 	}
 	pair := strings.SplitN(string(b), ":", 2)
 	if len(pair) != 2 {
 		return nil, &HttpError{
-			Status: http.StatusBadRequest,
+			Status:  http.StatusBadRequest,
 			Message: "Basic authorization must be a base64-encoded id:secret pair",
 		}
 	}
@@ -70,7 +70,7 @@ func GetValidAuth(request *http.Request, params objx.Map, allowSecretInParams bo
 	if err != nil || auth == nil {
 		if err == nil {
 			err = &HttpError{
-				Status: http.StatusUnauthorized,
+				Status:  http.StatusUnauthorized,
 				Message: "No client credentials received",
 			}
 		}
@@ -92,7 +92,7 @@ func (s *Server) GetValidClient(id string) (Client, *HttpError) {
 			return nil, httpErr
 		}
 		return nil, &HttpError{
-			Status: http.StatusInternalServerError,
+			Status:  http.StatusInternalServerError,
 			Message: err.Error(),
 		}
 	}
@@ -130,7 +130,7 @@ func (s *Server) GetValidAuthData(code string) (AuthorizeData, *HttpError) {
 			return nil, httpErr
 		}
 		return nil, &HttpError{
-			Status: http.StatusInternalServerError,
+			Status:  http.StatusInternalServerError,
 			Message: err.Error(),
 		}
 	}
@@ -157,7 +157,7 @@ func (s *Server) GetValidAccessData(token string) (AccessData, *HttpError) {
 			return nil, httpErr
 		}
 		return nil, &HttpError{
-			Status: http.StatusInternalServerError,
+			Status:  http.StatusInternalServerError,
 			Message: err.Error(),
 		}
 	}
@@ -184,7 +184,7 @@ func (s *Server) GetValidRefresh(token string) (AccessData, *HttpError) {
 			return nil, httpErr
 		}
 		return nil, &HttpError{
-			Status: http.StatusInternalServerError,
+			Status:  http.StatusInternalServerError,
 			Message: err.Error(),
 		}
 	}

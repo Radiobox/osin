@@ -3,177 +3,31 @@ package osin
 import (
 	"time"
 	"github.com/stretchr/objx"
+	"net/url"
+	"net/http"
+	"fmt"
 )
-
-type AuthorizeRequestType string
-
-const (
-	CODE  AuthorizeRequestType = "code"
-	TOKEN                      = "token"
-)
-
-// Authorize request information
-type AuthorizeRequest struct {
-	Type        AuthorizeRequestType
-	Client      Client
-	Scope       string
-	RedirectUri string
-	State       string
-
-	// Set if request is authorized
-	Authorized bool
-
-	// Token expiration in seconds. Change if different from default.
-	// If type = TOKEN, this expiration will be for the ACCESS token.
-	Expiration int32
-}
-
-// AuthorizeData is any struct that implements getters and setters for
-// authorization data, as well as expiration methods.
-type AuthorizeData interface {
-	GetClient() Client
-	SetClient(Client)
-
-	GetCode() string
-	SetCode(string)
-
-	GetExpiresIn() int32
-	SetExpiresIn(int32)
-
-	GetScope() string
-	SetScope(string)
-
-	GetRedirectUri() string
-	SetRedirectUri(string)
-
-	GetState() string
-	SetState(string)
-
-	GetCreatedAt() time.Time
-	SetCreatedAt(time.Time)
-
-	IsExpired() bool
-
-	ExpiresAt() time.Time
-}
-
-// OsinAuthorizeData is the default AuthorizeData type.
-type OsinAuthorizeData struct {
-	// Client information
-	Client Client
-
-	// Authorization code
-	Code string
-
-	// Token expiration in seconds
-	ExpiresIn int32
-
-	// Requested scope
-	Scope string
-
-	// Redirect Uri from request
-	RedirectUri string
-
-	// State data from request
-	State string
-
-	// Date created
-	CreatedAt time.Time
-}
-
-func (data *OsinAuthorizeData) GetClient() Client {
-	return data.Client
-}
-
-func (data *OsinAuthorizeData) SetClient(client Client) {
-	data.Client = client
-}
-
-func (data *OsinAuthorizeData) GetCode() string {
-	return data.Code
-}
-
-func (data *OsinAuthorizeData) SetCode(code string) {
-	data.Code = code
-}
-
-func (data *OsinAuthorizeData) GetExpiresIn() int32 {
-	return data.ExpiresIn
-}
-
-func (data *OsinAuthorizeData) SetExpiresIn(seconds int32) {
-	data.ExpiresIn = seconds
-}
-
-func (data *OsinAuthorizeData) GetScope() string {
-	return data.Scope
-}
-
-func (data *OsinAuthorizeData) SetScope(scope string) {
-	data.Scope = scope
-}
-
-func (data *OsinAuthorizeData) GetRedirectUri() string {
-	return data.RedirectUri
-}
-
-func (data *OsinAuthorizeData) SetRedirectUri(uri string) {
-	data.RedirectUri = uri
-}
-
-func (data *OsinAuthorizeData) GetState() string {
-	return data.State
-}
-
-func (data *OsinAuthorizeData) SetState(state string) {
-	data.State = state
-}
-
-func (data *OsinAuthorizeData) GetCreatedAt() time.Time {
-	return data.CreatedAt
-}
-
-func (data *OsinAuthorizeData) SetCreatedAt(timestamp time.Time) {
-	data.CreatedAt = timestamp
-}
-
-// ExpiresAt returns this AuthorizeData's expiration timestamp.
-func (data *OsinAuthorizeData) ExpiresAt() time.Time {
-	return data.GetCreatedAt().Add(time.Duration(data.GetExpiresIn()) * time.Second)
-}
-
-// IsExpired returns true if this AuthorizeData is expired, false
-// otherwise.
-func (data *OsinAuthorizeData) IsExpired() bool {
-	return data.ExpiresAt().Before(time.Now())
-}
-
-// Authorization token generator interface
-type AuthorizeTokenGen interface {
-	GenerateAuthorizeToken() (string, error)
-}
 
 // HandleAuthorizeRequest takes a *Response and an
 // objx.Map of parameters, and returns a *AuthorizeRequest
 // representing the request present in the *http.Request and
 // parameters.
-func (s *Server) HandleAuthorizeRequest(w *Response, params objx.Map) *AuthorizeRequest {
+func (s *Server) HandleAuthorizeRequest(params objx.Map) (*AuthorizeRequest, *HttpError) {
 
 	requestType := AuthorizeRequestType(params.Get("response_type").Str())
 	if s.Config.AllowedAuthorizeTypes.Exists(requestType) {
 		switch requestType {
 		case CODE:
-			return s.handleAuthorizeRequestCode(w, params)
+			return s.handleAuthorizeRequestCode(params)
 		case TOKEN:
-			return s.handleAuthorizeRequestToken(w, params)
+			return s.handleAuthorizeRequestToken(params)
 		}
 	}
 
-	w.SetError(E_UNSUPPORTED_RESPONSE_TYPE, "")
-	return nil
+	return nil, deferror.Get(E_UNSUPPORTED_RESPONSE_TYPE)
 }
 
-func (s *Server) handleAuthorizeRequestCode(w *Response, params objx.Map) *AuthorizeRequest {
+func (s *Server) handleAuthorizeRequestCode(params objx.Map) (*AuthorizeRequest, *HttpError) {
 	ret := &AuthorizeRequest{
 		Type:        CODE,
 		State:       params.Get("state").Str(),
@@ -183,28 +37,24 @@ func (s *Server) handleAuthorizeRequestCode(w *Response, params objx.Map) *Autho
 		Expiration:  s.Config.AuthorizationExpiration,
 	}
 
-	var err error
+	var err *HttpError
 
-	ret.Client, err = s.GetValidClient(params.Get("client_id").Str(), w)
+	ret.Client, err = s.GetValidClient(params.Get("client_id").Str())
 	if err != nil {
-		return nil
+		return nil, err
 	}
-
-	w.SetRedirect(ret.Client.GetRedirectUri())
 
 	if ret.RedirectUri == "" {
 		ret.RedirectUri = ret.Client.GetRedirectUri()
 	}
 	if err = ValidateUri(ret.Client.GetRedirectUri(), ret.RedirectUri); err != nil {
-		w.SetErrorState(E_INVALID_REQUEST, "", ret.State)
-		w.InternalError = err
-		return nil
+		return nil, err
 	}
 
-	return ret
+	return ret, nil
 }
 
-func (s *Server) handleAuthorizeRequestToken(w *Response, params objx.Map) *AuthorizeRequest {
+func (s *Server) handleAuthorizeRequestToken(params objx.Map) (*AuthorizeRequest, *HttpError) {
 	ret := &AuthorizeRequest{
 		Type:        TOKEN,
 		State:       params.Get("state").Str(),
@@ -215,37 +65,40 @@ func (s *Server) handleAuthorizeRequestToken(w *Response, params objx.Map) *Auth
 		Expiration: s.Config.AccessExpiration,
 	}
 
-	var err error
+	var err *HttpError
 
-	ret.Client, err = s.GetValidClient(params.Get("client_id").Str(), w)
+	ret.Client, err = s.GetValidClient(params.Get("client_id").Str())
 	if err != nil {
-		return nil
+		return nil, err
 	}
-
-	w.SetRedirect(ret.Client.GetRedirectUri())
 
 	if ret.RedirectUri == "" {
 		ret.RedirectUri = ret.Client.GetRedirectUri()
 	}
 	if err = ValidateUri(ret.Client.GetRedirectUri(), ret.RedirectUri); err != nil {
-		w.SetErrorState(E_INVALID_REQUEST, "", ret.State)
-		w.InternalError = err
-		return nil
+		return nil, err
 	}
 
-	return ret
+	return ret, nil
 }
 
-func (s *Server) FinishAuthorizeRequest(w *Response, params objx.Map, ar *AuthorizeRequest, targets ...interface{}) {
-	if w.IsError {
-		return
-	}
-
-	w.SetRedirect(ar.RedirectUri)
-
+func (s *Server) FinishAuthorizeRequest(params objx.Map, ar *AuthorizeRequest, target interface{}) (redirect string, err *HttpError) {
 	if ar.Authorized {
+		redirectUrl, err := url.Parse(ar.RedirectUri)
+		if err != nil {
+			return "", &HttpError{
+				Status: http.StatusInternalServerError,
+				Message: "Could not parse previously parsed url: " + err.Error(),
+			}
+		}
 		if ar.Type == TOKEN {
-			w.SetRedirectFragment(true)
+			access, ok := target.(AccessData)
+			if !ok {
+				return "", &HttpError{
+					Status: http.StatusInternalServerError,
+					Message: "Expected target to be AccessData.",
+				}
+			}
 
 			ret := &AccessRequest{
 				Type:            IMPLICIT,
@@ -258,40 +111,53 @@ func (s *Server) FinishAuthorizeRequest(w *Response, params objx.Map, ar *Author
 				Expiration:      ar.Expiration,
 			}
 
-			s.FinishAccessRequest(w, params, ret, targets...)
-		} else {
-			var target AuthorizeData
-			if len(targets) > 0 {
-				target = targets[0].(AuthorizeData)
-			} else {
-				target = new(OsinAuthorizeData)
+			response, err := s.FinishAccessRequest(params, ret, access)
+			if err != nil {
+				return "", err
 			}
-			target.SetClient(ar.Client)
-			target.SetCreatedAt(time.Now())
-			target.SetExpiresIn(ar.Expiration)
-			target.SetRedirectUri(ar.RedirectUri)
-			target.SetState(ar.State)
-			target.SetScope(ar.Scope)
+			query := redirectUrl.Query()
+			for key, value := range response {
+				query.Set(key, fmt.Sprint(value))
+			}
+			redirectUrl.RawQuery = ""
+			redirectUrl.Fragment = query.Encode()
+		} else {
+			authData, ok := target.(AuthorizeData)
+			if !ok {
+				return "", &HttpError{
+					Status: http.StatusInternalServerError,
+					Message: "Expected target to be AuthorizeData",
+				}
+			}
+			authData.SetClient(ar.Client)
+			authData.SetCreatedAt(time.Now())
+			authData.SetExpiresIn(ar.Expiration)
+			authData.SetRedirectUri(ar.RedirectUri)
+			authData.SetState(ar.State)
+			authData.SetScope(ar.Scope)
 
 			code, err := s.AuthorizeTokenGen.GenerateAuthorizeToken()
 			if err != nil {
-				w.SetErrorState(E_SERVER_ERROR, "", ar.State)
-				w.InternalError = err
-				return
+				return "", err
 			}
-			target.SetCode(code)
+			authData.SetCode(code)
 
-			if err = s.Storage.SaveAuthorize(target); err != nil {
-				w.SetErrorState(E_SERVER_ERROR, "", ar.State)
-				w.InternalError = err
-				return
+			if saveErr := s.Storage.SaveAuthorize(authData); err != nil {
+				if httpErr, ok := saveErr.(*HttpError); ok {
+					return "", httpErr
+				}
+				return "", &HttpError{
+					Status: http.StatusInternalServerError,
+					Message: saveErr.Error(),
+				}
 			}
 
-			w.Output["code"] = target.GetCode()
-			w.Output["state"] = target.GetState()
+			query := redirectUrl.Query()
+			query.Set("code", authData.GetCode())
+			query.Set("state", authData.GetState())
+			redirectUrl.RawQuery = query.Encode()
 		}
-	} else {
-		// redirect with error
-		w.SetErrorState(E_ACCESS_DENIED, "", ar.State)
+		return redirectUrl.String(), nil
 	}
+	return "", deferror.Get(E_ACCESS_DENIED)
 }

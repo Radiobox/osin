@@ -13,8 +13,8 @@ type Client interface {
 	SetRedirectUri(string)
 }
 
-// OsinClient is the default client type.
-type OsinClient struct {
+// BasicClient is the default client type.
+type BasicClient struct {
 	// Client id
 	Id string
 
@@ -25,26 +25,26 @@ type OsinClient struct {
 	RedirectUri string
 }
 
-func (client *OsinClient) GetId() string {
+func (client *BasicClient) GetId() string {
 	return client.Id
 }
 
-func (client *OsinClient) SetId(id string) {
+func (client *BasicClient) SetId(id string) {
 	client.Id = id
 }
 
-func (client *OsinClient) GetSecret() string {
+func (client *BasicClient) GetSecret() string {
 	return client.Secret
 }
 
-func (client *OsinClient) SetSecret(secret string) {
+func (client *BasicClient) SetSecret(secret string) {
 	client.Secret = secret
 }
 
-func (client *OsinClient) GetRedirectUri() string {
+func (client *BasicClient) GetRedirectUri() string {
 	return client.RedirectUri
 }
 
-func (client *OsinClient) SetRedirectUri(uri string) {
+func (client *BasicClient) SetRedirectUri(uri string) {
 	client.RedirectUri = uri
 }

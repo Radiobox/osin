@@ -25,13 +25,13 @@ func (s *Server) HandleAccessRequest(request *http.Request, params objx.Map) (*A
 	if s.Config.AllowedAccessTypes.Exists(grantType) {
 		switch grantType {
 		case AUTHORIZATION_CODE:
-			return s.handleAccessRequestAuthorizationCode(w, request, params)
+			return s.handleAccessRequestAuthorizationCode(request, params)
 		case REFRESH_TOKEN:
-			return s.handleAccessRequestRefreshToken(w, request, params)
+			return s.handleAccessRequestRefreshToken(request, params)
 		case PASSWORD:
-			return s.handleAccessRequestPassword(w, request, params)
+			return s.handleAccessRequestPassword(request, params)
 		case CLIENT_CREDENTIALS:
-			return s.handleAccessRequestClientCredentials(w, request, params)
+			return s.handleAccessRequestClientCredentials(request, params)
 		}
 	}
 
@@ -39,7 +39,7 @@ func (s *Server) HandleAccessRequest(request *http.Request, params objx.Map) (*A
 }
 
 func (s *Server) handleAccessRequestAuthorizationCode(request *http.Request, params objx.Map) (*AccessRequest, *HttpError) {
-	auth, err := GetValidAuth(request, params, s.Config.AllowClientSecretInParams, w)
+	auth, err := GetValidAuth(request, params, s.Config.AllowClientSecretInParams)
 	if err != nil {
 		return nil, err
 	}
@@ -56,12 +56,12 @@ func (s *Server) handleAccessRequestAuthorizationCode(request *http.Request, par
 		return nil, deferror.Get(E_INVALID_GRANT)
 	}
 
-	ret.Client, err = s.GetValidClientWithSecret(auth.Username, auth.Password, w)
+	ret.Client, err = s.GetValidClientWithSecret(auth.Username, auth.Password)
 	if err != nil {
 		return nil, err
 	}
 
-	ret.AuthorizeData, err = s.GetValidAuthData(ret.Code, w)
+	ret.AuthorizeData, err = s.GetValidAuthData(ret.Code)
 	if err != nil {
 		return nil, err
 	}
@@ -98,12 +98,12 @@ func (s *Server) handleAccessRequestRefreshToken(request *http.Request, params o
 	}
 
 	var err error
-	ret.Client, err = s.GetValidClient(params.Get("client_id").Str(), w)
+	ret.Client, err = s.GetValidClient(params.Get("client_id").Str())
 	if err != nil {
 		return nil, err
 	}
 
-	ret.AccessData, err = s.GetValidRefresh(ret.Code, w)
+	ret.AccessData, err = s.GetValidRefresh(ret.Code)
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +141,7 @@ func (s *Server) handleAccessRequestPassword(w *Response, request *http.Request,
 	}
 
 	var err *HttpError
-	ret.Client, err = s.GetValidClient(params.Get("client_id").Str(), w)
+	ret.Client, err = s.GetValidClient(params.Get("client_id").Str())
 	if err != nil {
 		return nil, err
 	}
@@ -150,7 +150,7 @@ func (s *Server) handleAccessRequestPassword(w *Response, request *http.Request,
 }
 
 func (s *Server) handleAccessRequestClientCredentials(request *http.Request, params objx.Map) (*AccessRequest, *HttpError) {
-	auth, err := GetValidAuth(request, params, s.Config.AllowClientSecretInParams, w)
+	auth, err := GetValidAuth(request, params, s.Config.AllowClientSecretInParams)
 	if err != nil {
 		return nil, err
 	}
@@ -162,7 +162,7 @@ func (s *Server) handleAccessRequestClientCredentials(request *http.Request, par
 		Expiration:      s.Config.AccessExpiration,
 	}
 
-	ret.Client, err = s.GetValidClientWithSecret(auth.Username, auth.Password, w)
+	ret.Client, err = s.GetValidClientWithSecret(auth.Username, auth.Password)
 	if err != nil {
 		return nil, err
 	}

@@ -2,6 +2,8 @@ package osin
 
 import (
 	"errors"
+	"fmt"
+	"net/http"
 )
 
 type DefaultErrorId string
@@ -23,37 +25,84 @@ var (
 	deferror *DefaultErrors = NewDefaultErrors()
 )
 
+// An HttpError is an error with a Status.  In most cases, the Status
+// field should be used as the response code of any http responses
+// returning the error to a client.
+type HttpError struct {
+	Status int
+	Message string
+}
+
+func (err HttpError) Error() string {
+	return fmt.Sprintf("%d: %s", err.Status, err.Message)
+}
+
 // Default errors and messages
 type DefaultErrors struct {
-	errormap map[string]error
+	errormap map[string]*HttpError
 }
 
 func NewDefaultErrors() *DefaultErrors {
-	r := &DefaultErrors{errormap: make(map[string]error)}
-	r.errormap[E_INVALID_REQUEST] = errors.New("The request is missing a required parameter, " +
-		"includes an invalid parameter value, includes a parameter more than once, or is otherwise malformed.")
-	r.errormap[E_UNAUTHORIZED_CLIENT] = errors.New("The client is not authorized to request a token using this method.")
-	r.errormap[E_ACCESS_DENIED] = errors.New("The resource owner or authorization server denied the request.")
-	r.errormap[E_UNSUPPORTED_RESPONSE_TYPE] = errors.New("The authorization server does not " +
-		"support obtaining a token using this method.")
-	r.errormap[E_INVALID_SCOPE] = errors.New("The requested scope is invalid, unknown, or malformed.")
-	r.errormap[E_SERVER_ERROR] = errors.New("The authorization server encountered an unexpected " +
-		"condition that prevented it from fulfilling the request.")
-	r.errormap[E_TEMPORARILY_UNAVAILABLE] = errors.New("The authorization server is currently " +
-		"unable to handle the request due to a temporary overloading or maintenance of the server.")
-	r.errormap[E_UNSUPPORTED_GRANT_TYPE] = errors.New("The authorization grant type is not " +
-		"supported by the authorization server.")
-	r.errormap[E_INVALID_GRANT] = errors.New("The provided authorization grant (e.g., authorization " +
-		"code, resource owner credentials) or refresh token is invalid, expired, revoked, does not " +
-		"match the redirection URI used in the authorization request, or was issued to another client.")
-	r.errormap[E_INVALID_CLIENT] = errors.New("Client authentication failed (e.g., unknown client, no " +
-		"client authentication included, or unsupported authentication method).")
-	return r
+	errMap := map[string]*HttpError{
+		E_INVALID_REQUEST: &HttpError{
+			Status: http.StatusBadRequest,
+			Message: "The request is missing a required parameter, " +
+				"includes an invalid parameter value, includes a " +
+				"parameter more than once, or is otherwise malformed.",
+		},
+		E_UNAUTHORIZED_CLIENT: &HttpError{
+			Status: http.StatusUnauthorized,
+			Message: "The client is not authorized to request a token using this method.",
+		},
+		E_ACCESS_DENIED: &HttpError{
+			Status: http.StatusUnauthorized,
+			Message: "The resource owner or authorization server denied the request.",
+		},
+		E_UNSUPPORTED_RESPONSE_TYPE: &HttpError{
+			Status: http.StatusNotAcceptable,
+			Message: "The authorization server does not " +
+				"support obtaining a token using this method.",
+		},
+		E_INVALID_SCOPE: &HttpError{
+			Status: http.StatusBadRequest,
+			Message: "The requested scope is invalid, unknown, or malformed.",
+		},
+		E_SERVER_ERROR: &HttpError{
+			Status: http.StatusInternalServerError,
+			Message: "The authorization server encountered an unexpected " +
+				"condition that prevented it from fulfilling the request.",
+		},
+		E_TEMPORARILY_UNAVAILABLE: &HttpError{
+			Status: http.StatusServiceUnavailable,
+			Message: "The authorization server is currently " +
+				"unable to handle the request due to a temporary overloading or maintenance of the server.",
+		},
+		E_UNSUPPORTED_GRANT_TYPE: &HttpError{
+			Status: http.StatusNotAcceptable,
+			Message: "The authorization grant type is not " +
+				"supported by the authorization server.",
+		}
+		E_INVALID_GRANT: &HttpError{
+			Status: http.StatusUnauthorized,
+			Message: "The provided authorization grant (e.g., authorization " +
+				"code, resource owner credentials, or refresh token is invalid, expired, revoked, does not " +
+				"match the redirection URI used in the authorization request, or was issued to another client.",
+		}
+		E_INVALID_CLIENT: &HttpError{
+			Status: http.StatusUnauthorized,
+			Message: "Client authentication failed (e.g., unknown client, no " +
+				"client authentication included, or unsupported authentication method.",
+		}
+	}
+	return &DefaultErrors{errormap: errMap}
 }
 
-func (e *DefaultErrors) Get(id string) error {
+func (e *DefaultErrors) Get(id string) *HttpError {
 	if m, ok := e.errormap[id]; ok {
 		return m
 	}
-	return errors.New(id)
+	return &HttpError{
+		Status: http.StatusInternalServerError,
+		Message: "Unrecognized error type: " + id,
+	}
 }

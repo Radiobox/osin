@@ -54,8 +54,8 @@ type AuthorizeData interface {
 	ExpiresAt() time.Time
 }
 
-// OsinAuthorizeData is the default AuthorizeData type.
-type OsinAuthorizeData struct {
+// BasicAuthorizeData is the default AuthorizeData type.
+type BasicAuthorizeData struct {
 	// Client information
 	Client Client
 
@@ -78,69 +78,69 @@ type OsinAuthorizeData struct {
 	CreatedAt time.Time
 }
 
-func (data *OsinAuthorizeData) GetClient() Client {
+func (data *BasicAuthorizeData) GetClient() Client {
 	return data.Client
 }
 
-func (data *OsinAuthorizeData) SetClient(client Client) {
+func (data *BasicAuthorizeData) SetClient(client Client) {
 	data.Client = client
 }
 
-func (data *OsinAuthorizeData) GetCode() string {
+func (data *BasicAuthorizeData) GetCode() string {
 	return data.Code
 }
 
-func (data *OsinAuthorizeData) SetCode(code string) {
+func (data *BasicAuthorizeData) SetCode(code string) {
 	data.Code = code
 }
 
-func (data *OsinAuthorizeData) GetExpiresIn() int32 {
+func (data *BasicAuthorizeData) GetExpiresIn() int32 {
 	return data.ExpiresIn
 }
 
-func (data *OsinAuthorizeData) SetExpiresIn(seconds int32) {
+func (data *BasicAuthorizeData) SetExpiresIn(seconds int32) {
 	data.ExpiresIn = seconds
 }
 
-func (data *OsinAuthorizeData) GetScope() string {
+func (data *BasicAuthorizeData) GetScope() string {
 	return data.Scope
 }
 
-func (data *OsinAuthorizeData) SetScope(scope string) {
+func (data *BasicAuthorizeData) SetScope(scope string) {
 	data.Scope = scope
 }
 
-func (data *OsinAuthorizeData) GetRedirectUri() string {
+func (data *BasicAuthorizeData) GetRedirectUri() string {
 	return data.RedirectUri
 }
 
-func (data *OsinAuthorizeData) SetRedirectUri(uri string) {
+func (data *BasicAuthorizeData) SetRedirectUri(uri string) {
 	data.RedirectUri = uri
 }
 
-func (data *OsinAuthorizeData) GetState() string {
+func (data *BasicAuthorizeData) GetState() string {
 	return data.State
 }
 
-func (data *OsinAuthorizeData) SetState(state string) {
+func (data *BasicAuthorizeData) SetState(state string) {
 	data.State = state
 }
 
-func (data *OsinAuthorizeData) GetCreatedAt() time.Time {
+func (data *BasicAuthorizeData) GetCreatedAt() time.Time {
 	return data.CreatedAt
 }
 
-func (data *OsinAuthorizeData) SetCreatedAt(timestamp time.Time) {
+func (data *BasicAuthorizeData) SetCreatedAt(timestamp time.Time) {
 	data.CreatedAt = timestamp
 }
 
 // ExpiresAt returns this AuthorizeData's expiration timestamp.
-func (data *OsinAuthorizeData) ExpiresAt() time.Time {
+func (data *BasicAuthorizeData) ExpiresAt() time.Time {
 	return data.GetCreatedAt().Add(time.Duration(data.GetExpiresIn()) * time.Second)
 }
 
 // IsExpired returns true if this AuthorizeData is expired, false
 // otherwise.
-func (data *OsinAuthorizeData) IsExpired() bool {
+func (data *BasicAuthorizeData) IsExpired() bool {
 	return data.ExpiresAt().Before(time.Now())
 }

@@ -102,85 +102,85 @@ type BasicAccessData struct {
 	CreatedAt time.Time
 }
 
-func (data *OsinAccessData) GetClient() Client {
+func (data *BasicAccessData) GetClient() Client {
 	return data.Client
 }
 
-func (data *OsinAccessData) SetClient(client Client) {
+func (data *BasicAccessData) SetClient(client Client) {
 	data.Client = client
 }
 
-func (data *OsinAccessData) GetAuthorizeData() AuthorizeData {
+func (data *BasicAccessData) GetAuthorizeData() AuthorizeData {
 	return data.AuthorizeData
 }
 
-func (data *OsinAccessData) SetAuthorizeData(authData AuthorizeData) {
+func (data *BasicAccessData) SetAuthorizeData(authData AuthorizeData) {
 	data.AuthorizeData = authData
 }
 
-func (data *OsinAccessData) GetAccessData() AccessData {
+func (data *BasicAccessData) GetAccessData() AccessData {
 	return data.AccessData
 }
 
-func (data *OsinAccessData) SetAccessData(accessData AccessData) {
+func (data *BasicAccessData) SetAccessData(accessData AccessData) {
 	data.AccessData = accessData
 }
 
-func (data *OsinAccessData) GetAccessToken() string {
+func (data *BasicAccessData) GetAccessToken() string {
 	return data.AccessToken
 }
 
-func (data *OsinAccessData) SetAccessToken(token string) {
+func (data *BasicAccessData) SetAccessToken(token string) {
 	data.AccessToken = token
 }
 
-func (data *OsinAccessData) GetRefreshToken() string {
+func (data *BasicAccessData) GetRefreshToken() string {
 	return data.RefreshToken
 }
 
-func (data *OsinAccessData) SetRefreshToken(token string) {
+func (data *BasicAccessData) SetRefreshToken(token string) {
 	data.RefreshToken = token
 }
 
-func (data *OsinAccessData) GetExpiresIn() int32 {
+func (data *BasicAccessData) GetExpiresIn() int32 {
 	return data.ExpiresIn
 }
 
-func (data *OsinAccessData) SetExpiresIn(seconds int32) {
+func (data *BasicAccessData) SetExpiresIn(seconds int32) {
 	data.ExpiresIn = seconds
 }
 
-func (data *OsinAccessData) GetScope() string {
+func (data *BasicAccessData) GetScope() string {
 	return data.Scope
 }
 
-func (data *OsinAccessData) SetScope(scope string) {
+func (data *BasicAccessData) SetScope(scope string) {
 	data.Scope = scope
 }
 
-func (data *OsinAccessData) GetRedirectUri() string {
+func (data *BasicAccessData) GetRedirectUri() string {
 	return data.RedirectUri
 }
 
-func (data *OsinAccessData) SetRedirectUri(uri string) {
+func (data *BasicAccessData) SetRedirectUri(uri string) {
 	data.RedirectUri = uri
 }
 
-func (data *OsinAccessData) GetCreatedAt() time.Time {
+func (data *BasicAccessData) GetCreatedAt() time.Time {
 	return data.CreatedAt
 }
 
-func (data *OsinAccessData) SetCreatedAt(timestamp time.Time) {
+func (data *BasicAccessData) SetCreatedAt(timestamp time.Time) {
 	data.CreatedAt = timestamp
 }
 
 // ExpiresAt returns this AccessData's expiration timestamp.
-func (data *OsinAccessData) ExpiresAt() time.Time {
+func (data *BasicAccessData) ExpiresAt() time.Time {
 	return data.GetCreatedAt().Add(time.Duration(data.GetExpiresIn()) * time.Second)
 }
 
 // IsExpired returns true if this AccessData is expired, false
 // otherwise.
-func (data *OsinAccessData) IsExpired() bool {
+func (data *BasicAccessData) IsExpired() bool {
 	return data.ExpiresAt().Before(time.Now())
 }

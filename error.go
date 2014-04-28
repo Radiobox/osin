@@ -81,18 +81,18 @@ func NewDefaultErrors() *DefaultErrors {
 			Status: http.StatusNotAcceptable,
 			Message: "The authorization grant type is not " +
 				"supported by the authorization server.",
-		}
+		},
 		E_INVALID_GRANT: &HttpError{
 			Status: http.StatusUnauthorized,
 			Message: "The provided authorization grant (e.g., authorization " +
 				"code, resource owner credentials, or refresh token is invalid, expired, revoked, does not " +
 				"match the redirection URI used in the authorization request, or was issued to another client.",
-		}
+		},
 		E_INVALID_CLIENT: &HttpError{
 			Status: http.StatusUnauthorized,
 			Message: "Client authentication failed (e.g., unknown client, no " +
 				"client authentication included, or unsupported authentication method.",
-		}
+		},
 	}
 	return &DefaultErrors{errormap: errMap}
 }

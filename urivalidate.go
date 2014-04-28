@@ -26,7 +26,7 @@ func ValidateUri(baseUri string, redirectUri string) *HttpError {
 	redirect, err := url.Parse(redirectUri)
 	if err != nil {
 		return &HttpError{
-			Status: http.StatusBadReqeust,
+			Status: http.StatusBadRequest,
 			Message: "Redirect url parse error: " + err.Error(),
 		}
 	}

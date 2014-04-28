@@ -5,11 +5,16 @@ import (
 	"encoding/base64"
 )
 
+// Authorization token generator interface
+type AuthorizeTokenGen interface {
+	GenerateAuthorizeToken() (string, *HttpError)
+}
+
 // Default authorization token generator
 type AuthorizeTokenGenDefault struct {
 }
 
-func (a *AuthorizeTokenGenDefault) GenerateAuthorizeToken() (ret string, err error) {
+func (a *AuthorizeTokenGenDefault) GenerateAuthorizeToken() (ret string, err *HttpError) {
 	token := uuid.New()
 	return base64.StdEncoding.EncodeToString([]byte(token)), nil
 }

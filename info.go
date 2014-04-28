@@ -3,53 +3,46 @@ package osin
 import (
 	"net/http"
 	"time"
+	"github.com/stretchr/objx"
 )
 
-// Info request information
 type InfoRequest struct {
 	Code       string
 	AccessData AccessData
 }
 
-// Information request.
-// NOT an RFC specification.
-func (s *Server) HandleInfoRequest(w *Response, r *http.Request) *InfoRequest {
+func (s *Server) HandleInfoRequest(r *http.Request) (*InfoRequest, *HttpError) {
 	r.ParseForm()
 
-	// generate info request
 	ret := &InfoRequest{
 		Code: r.Form.Get("code"),
 	}
 
 	if ret.Code == "" {
-		w.SetError(E_INVALID_REQUEST, "")
-		return nil
+		return nil, deferror.Get(E_INVALID_REQUEST)
 	}
 
-	var err error
+	var err *HttpError
 
-	ret.AccessData, err = s.GetValidAccessData(ret.Code, w)
+	ret.AccessData, err = s.GetValidAccessData(ret.Code)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
-	return ret
+	return ret, nil
 }
 
-func (s *Server) FinishInfoRequest(w *Response, r *http.Request, ir *InfoRequest) {
-	// don't process if is already an error
-	if w.IsError {
-		return
+func (s *Server) FinishInfoRequest(r *http.Request, ir *InfoRequest) objx.Map {
+	response := objx.Map{
+		"access_token": ir.AccessData.GetAccessToken(),
+		"token_type": s.Config.TokenType,
+		"expires_in": ir.AccessData.ExpiresAt().Sub(time.Now()) / time.Second,
 	}
-
-	// output data
-	w.Output["access_token"] = ir.AccessData.GetAccessToken()
-	w.Output["token_type"] = s.Config.TokenType
-	w.Output["expires_in"] = ir.AccessData.ExpiresAt().Sub(time.Now()) / time.Second
 	if ir.AccessData.GetRefreshToken() != "" {
-		w.Output["refresh_token"] = ir.AccessData.GetRefreshToken()
+		response.Set("refresh_token", ir.AccessData.GetRefreshToken())
 	}
 	if ir.AccessData.GetScope() != "" {
-		w.Output["scope"] = ir.AccessData.GetScope()
+		response.Set("scope", ir.AccessData.GetScope())
 	}
+	return response
 }

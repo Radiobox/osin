@@ -106,7 +106,7 @@ func (s *Server) GetValidClient(id string) (Client, *HttpError) {
 // *Response, then returns the client if both GetValidClient returns a
 // valid client and the passed in secret matches the client's secret.
 func (s *Server) GetValidClientWithSecret(id, secret string) (Client, *HttpError) {
-	client, err := s.GetValidClient(id, writer)
+	client, err := s.GetValidClient(id)
 	if err != nil {
 		return nil, err
 	}

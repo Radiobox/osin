@@ -125,7 +125,7 @@ func (s *Server) handleAccessRequestRefreshToken(request *http.Request, params o
 // usually a call from a client-side application or script, so we
 // don't require a client secret, because it probably can't be secured
 // properly, anyway.
-func (s *Server) handleAccessRequestPassword(w *Response, request *http.Request, params objx.Map) *AccessRequest {
+func (s *Server) handleAccessRequestPassword(request *http.Request, params objx.Map) (*AccessRequest, *HttpError) {
 
 	ret := &AccessRequest{
 		Type:            PASSWORD,

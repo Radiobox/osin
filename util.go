@@ -2,7 +2,6 @@ package osin
 
 import (
 	"encoding/base64"
-	"errors"
 	"net/http"
 	"strings"
 	"github.com/stretchr/objx"

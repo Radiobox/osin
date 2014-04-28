@@ -1,7 +1,6 @@
 package osin
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 )

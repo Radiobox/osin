@@ -177,7 +177,7 @@ func (s *Server) GetValidAccessData(token string) (AccessData, *HttpError) {
 // (i.e. if the AccessData's Client value returned from GetClient()
 // is nil or has an empty GetRedirectUri() response), or the validated
 // AccessData and nil for an error otherwise.
-func (s *Server) GetValidRefresh(token string) (AccessData, error) {
+func (s *Server) GetValidRefresh(token string) (AccessData, *HttpError) {
 	access, err := s.Storage.LoadRefresh(token)
 	if err != nil {
 		if httpErr, ok := err.(*HttpError); ok {

@@ -6,11 +6,6 @@ import (
 	"github.com/stretchr/objx"
 )
 
-// Access token generator interface
-type AccessTokenGen interface {
-	GenerateAccessToken(generaterefresh bool) (accesstoken string, refreshtoken string, err error)
-}
-
 // HandleAccessRequest takes a *http.Request and a map of input
 // parameters, and returns a *AccessRequest representing the request
 // for an access token and a *HttpError if any error is encountered.
@@ -81,7 +76,7 @@ func (s *Server) handleAccessRequestAuthorizationCode(request *http.Request, par
 	}
 
 	ret.Scope = ret.AuthorizeData.GetScope()
-	return ret
+	return ret, nil
 }
 
 func (s *Server) handleAccessRequestRefreshToken(request *http.Request, params objx.Map) (*AccessRequest, *HttpError) {
@@ -97,7 +92,7 @@ func (s *Server) handleAccessRequestRefreshToken(request *http.Request, params o
 		return nil, deferror.Get(E_INVALID_GRANT)
 	}
 
-	var err error
+	var err *HttpError
 	ret.Client, err = s.GetValidClient(params.Get("client_id").Str())
 	if err != nil {
 		return nil, err
@@ -117,7 +112,7 @@ func (s *Server) handleAccessRequestRefreshToken(request *http.Request, params o
 		ret.Scope = ret.AccessData.GetScope()
 	}
 
-	return ret
+	return ret, nil
 }
 
 // handleAccessRequestPassword handles access requests that POST a
@@ -146,7 +141,7 @@ func (s *Server) handleAccessRequestPassword(request *http.Request, params objx.
 		return nil, err
 	}
 	ret.RedirectUri = ret.Client.GetRedirectUri()
-	return ret
+	return ret, nil
 }
 
 func (s *Server) handleAccessRequestClientCredentials(request *http.Request, params objx.Map) (*AccessRequest, *HttpError) {
@@ -169,7 +164,7 @@ func (s *Server) handleAccessRequestClientCredentials(request *http.Request, par
 
 	ret.RedirectUri = ret.Client.GetRedirectUri()
 
-	return ret
+	return ret, nil
 }
 
 func (s *Server) FinishAccessRequest(params objx.Map, ar *AccessRequest, target AccessData) (response objx.Map, httpErr *HttpError) {

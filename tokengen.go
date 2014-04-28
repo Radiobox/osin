@@ -14,11 +14,16 @@ func (a *AuthorizeTokenGenDefault) GenerateAuthorizeToken() (ret string, err err
 	return base64.StdEncoding.EncodeToString([]byte(token)), nil
 }
 
+// Access token generator interface
+type AccessTokenGen interface {
+	GenerateAccessToken(generaterefresh bool) (accesstoken string, refreshtoken string, err *HttpError)
+}
+
 // Default authorization token generator
 type AccessTokenGenDefault struct {
 }
 
-func (a *AccessTokenGenDefault) GenerateAccessToken(generaterefresh bool) (accesstoken string, refreshtoken string, err error) {
+func (a *AccessTokenGenDefault) GenerateAccessToken(generaterefresh bool) (accesstoken string, refreshtoken string, err *HttpError) {
 	accesstoken = uuid.New()
 	accesstoken = base64.StdEncoding.EncodeToString([]byte(accesstoken))
 

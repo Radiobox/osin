@@ -1,39 +1,50 @@
 package osin
 
 import (
-	"errors"
 	"fmt"
 	"net/url"
 	"strings"
+	"net/http"
 )
 
-// Validate if redirectUri is contained in baseUri
-func ValidateUri(baseUri string, redirectUri string) error {
+func ValidateUri(baseUri string, redirectUri string) *HttpError {
 	if baseUri == "" || redirectUri == "" {
-		return errors.New("urls cannot be blank.")
+		return &HttpError{
+			Status: http.StatusBadRequest,
+			Message: "urls cannot be blank.",
+		}
 	}
 
-	// parse base url
 	base, err := url.Parse(baseUri)
 	if err != nil {
-		return err
+		return &HttpError{
+			Status: http.StatusBadRequest,
+			Message: "Url parse error: " + err.Error(),
+		}
 	}
 
-	// parse passed url
 	redirect, err := url.Parse(redirectUri)
 	if err != nil {
-		return err
+		return &HttpError{
+			Status: http.StatusBadReqeust,
+			Message: "Redirect url parse error: " + err.Error(),
+		}
 	}
 
-	// must not have fragment
 	if base.Fragment != "" || redirect.Fragment != "" {
-		return errors.New("url must not include fragment.")
+		return &HttpError{
+			Status: http.StatusBadRequest,
+			Message: "Url must not include fragment.",
+		}
 	}
 
-	// check if urls match
-	if base.Scheme == redirect.Scheme && base.Host == redirect.Host && len(redirect.Path) >= len(base.Path) && strings.HasPrefix(redirect.Path, base.Path) {
-		return nil
+	validRedirect := base.Scheme == redirect.Scheme && base.Host == redirect.Host &&
+		len(redirect.Path) >= len(base.Path) && strings.HasPrefix(redirect.Path, base.Path)
+	if !validRedirect {
+		return &HttpError{
+			Status: http.StatusUnauthorized,
+			Message: fmt.Sprintf("Urls don't validate: %s / %s", baseUri, redirectUri),
+		}
 	}
-
-	return errors.New(fmt.Sprintf("urls don't validate: %s / %s\n", baseUri, redirectUri))
+	return nil
 }

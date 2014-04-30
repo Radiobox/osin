@@ -25,6 +25,8 @@ func (s *Server) HandleAccessRequest(request *http.Request, params objx.Map) (*A
 			return s.handleAccessRequestRefreshToken(request, params)
 		case PASSWORD:
 			return s.handleAccessRequestPassword(request, params)
+		case FB_TOKEN:
+			return s.handleAccessRequestFbToken(request, params)
 		case CLIENT_CREDENTIALS:
 			return s.handleAccessRequestClientCredentials(request, params)
 		}
@@ -138,6 +140,22 @@ func (s *Server) handleAccessRequestPassword(request *http.Request, params objx.
 	var err *HttpError
 	ret.Client, err = s.GetValidClient(params.Get("client_id").Str())
 	if err != nil {
+		return nil, err
+	}
+	ret.RedirectUri = ret.Client.GetRedirectUri()
+	return ret, nil
+}
+
+func (s *Server) handleAccessRequestFbToken(request *http.Request, params objx.Map) (*AccessRequest, *HttpError) {
+	ret := &AccessRequest{
+		Type:            FB_TOKEN,
+		Scope:           params.Get("scope").Str(),
+		GenerateRefresh: true,
+		Expiration:      s.Config.AccessExpiration,
+	}
+
+	var err *HttpError
+	if ret.Client, err = s.GetValidClient(params.Get("client_id").Str()); err != nil {
 		return nil, err
 	}
 	ret.RedirectUri = ret.Client.GetRedirectUri()

@@ -8,6 +8,7 @@ const (
 	AUTHORIZATION_CODE AccessRequestType = "authorization_code"
 	REFRESH_TOKEN                        = "refresh_token"
 	PASSWORD                             = "password"
+	FB_TOKEN                             = "facebook"
 	CLIENT_CREDENTIALS                   = "client_credentials"
 	IMPLICIT                             = "__implicit"
 )
